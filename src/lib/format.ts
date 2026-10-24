@@ -49,3 +49,10 @@ export function fmtRelative(ts: number, now = Date.now()) {
   if (days < 30) return `${days}d ago`;
   return fmtShortDate(ts);
 }
+
+export const fmtBtc = (n: number, digits = 4) => `₿${n.toFixed(digits)}`;
+
+export const fmtExpiry = (ts: number) =>
+  new Date(ts)
+    .toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" })
+    .toUpperCase() + " 08:00 UTC";

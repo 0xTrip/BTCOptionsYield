@@ -8,8 +8,8 @@ A clickable front-end prototype of a USDC vault that earns yield from a basket o
 
 | Route | What it shows |
 | --- | --- |
-| `/` | Landing page: pitch, how it works, strategy basket, fees with a worked example, Lucky Boost |
-| `/app` | Dashboard: fake wallet connect, balance and earnings, performance chart, allocation, deposit and withdraw flows (with the T+30 notice), activity, Lucky Boost draw |
+| `/` | Landing page: BTC Yield headline, how it works, the live options book, fees with a worked example, Lucky Boost |
+| `/app` | Dashboard: fake wallet connect, balance and earnings (in USD and ₿), performance chart, allocation, options book, deposit and withdraw flows (with the T+30 notice), activity, Lucky Boost draw |
 | `/app/strategies` | Interactive sell-put payoff explorer, plus a strategy mix that shifts with the market regime (Rising / Sideways / Falling) |
 
 ## Demo flow
@@ -22,9 +22,10 @@ A clickable front-end prototype of a USDC vault that earns yield from a basket o
 ## Editing numbers
 
 - Fees, notice period, demo wallet balance and the put example: `src/config.ts`
-- Vault TVL, price history, strategies, allocations and Lucky Boost tiers: `src/data/mock.ts`
+- Vault TVL, price history, strategies, allocations, options book positions and Lucky Boost tiers: `src/data/mock.ts`
+- Options expiries follow Deribit's monthly schedule (last Friday, 08:00 UTC) and are computed from today's date, so the book never shows expired instruments. Block height and the Lucky Boost draw block are derived from the clock the same way.
 - Product name: `APP_NAME` in `src/config.ts` (and `<title>` in `index.html`)
-- Colours: CSS variables in `src/index.css`
+- Colours and fonts: CSS variables in `src/index.css` (Bitcoin orange `#f7931a` on black; Archivo for display type, Geist and Geist Mono for text and data)
 
 ## Run locally
 

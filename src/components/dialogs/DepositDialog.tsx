@@ -59,7 +59,7 @@ export function DepositDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <DialogDescription>Earn yield from the vault's BTC options strategies.</DialogDescription>
 
             <div className="mt-5">
-              <div className="mb-2 flex justify-between text-xs text-muted">
+              <div className="eyebrow mb-2 flex justify-between text-[10px]">
                 <span>Amount</span>
                 <span className="num">Wallet: {fmtUsd(walletUsdc)}</span>
               </div>
@@ -73,13 +73,13 @@ export function DepositDialog({ open, onOpenChange }: { open: boolean; onOpenCha
               <p className="mt-2 h-4 text-xs text-down">{tooMuch ? "Amount exceeds your wallet balance" : ""}</p>
             </div>
 
-            <div className="mt-2 rounded-xl border border-border bg-bg/40 px-4 py-2">
+            <div className="mt-2 rounded-md border border-border bg-bg/50 px-4 py-2">
               <Row label={`Deposit fee (${fmtPct(FEES.deposit, 0)})`} value={`−${fmtUsd(p.fee)}`} muted />
               <Row label="Invested" value={fmtUsd(p.net)} strong />
               <Row label="Shares received" value={fmtNum(p.shares, 4)} />
               <Row label="Share price" value={`${fmtNum(SHARE_PRICE, 4)} USDC`} muted />
               <div className="my-1.5 h-px bg-border" />
-              <Row label="Current yield (30d, annualised)" value={<span className="text-accent">{fmtPct(VAULT.apy30d)}</span>} />
+              <Row label="BTC Yield (30D, annualised)" value={<span className="text-accent">{fmtPct(VAULT.apy30d)}</span>} />
               <Row label="Withdrawal notice" value={`${NOTICE_DAYS} days`} />
             </div>
 
@@ -94,7 +94,7 @@ export function DepositDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 "Enter an amount"
               )}
             </Button>
-            <p className="mt-3 text-center text-xs text-faint">Minimum deposit 10 USDC. Yield is variable.</p>
+            <p className="mt-3 text-center font-mono text-[11px] text-faint">Minimum deposit 10 USDC · yield is variable</p>
           </>
         )}
       </DialogContent>

@@ -22,25 +22,25 @@ export function PendingWithdrawals({ items }: { items: Withdrawal[] }) {
   const now = useNow();
 
   return (
-    <div className="card p-5 sm:p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 font-semibold">
-          <Hourglass className="size-4 text-muted" /> Pending withdrawals
+    <section className="card">
+      <header className="flex min-h-12 items-center justify-between border-b border-border px-5 py-2.5">
+        <h2 className="eyebrow flex items-center gap-2 text-fg">
+          <Hourglass className="size-3.5 text-accent" /> Pending withdrawals
         </h2>
         <Badge>{items.length}</Badge>
-      </div>
-      <ul className="space-y-3">
+      </header>
+      <ul className="space-y-3 p-5">
         {items.map((w) => {
           const total = w.unlockAt - w.requestedAt;
           const progress = Math.min(1, Math.max(0, (now - w.requestedAt) / total));
           const ready = now >= w.unlockAt;
           const daysLeft = Math.ceil((w.unlockAt - now) / DAY_MS);
           return (
-            <li key={w.id} className="rounded-xl border border-border bg-bg/40 p-4">
+            <li key={w.id} className="rounded-md border border-border bg-bg/50 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="num text-lg font-semibold">{fmtUsd(w.net)}</div>
-                  <div className="text-xs text-muted">
+                  <div className="display text-2xl">{fmtUsd(w.net)}</div>
+                  <div className="mt-1 font-mono text-[11px] text-muted">
                     Requested {fmtDate(w.requestedAt)} · {ready ? "Ready to claim" : `Claimable ${fmtDate(w.unlockAt)}`}
                   </div>
                 </div>
@@ -60,9 +60,9 @@ export function PendingWithdrawals({ items }: { items: Withdrawal[] }) {
                   </div>
                 )}
               </div>
-              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border-strong">
+              <div className="mt-4 h-1 overflow-hidden rounded-full bg-border-strong">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-accent to-accent-2 transition-[width] duration-700"
+                  className="h-full bg-accent transition-[width] duration-700"
                   style={{ width: `${progress * 100}%` }}
                 />
               </div>
@@ -70,6 +70,6 @@ export function PendingWithdrawals({ items }: { items: Withdrawal[] }) {
           );
         })}
       </ul>
-    </div>
+    </section>
   );
 }

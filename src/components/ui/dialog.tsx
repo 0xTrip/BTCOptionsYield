@@ -15,12 +15,12 @@ export function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & { side?: "center" | "right" }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm data-[state=open]:animate-[fade-up_0.2s_ease-out]" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-[2px] data-[state=open]:animate-[fade-up_0.2s_ease-out]" />
       <DialogPrimitive.Content
         className={cn(
           "fixed z-50 border border-border-strong bg-surface shadow-2xl outline-none",
           side === "center" &&
-            "left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto",
+            "left-1/2 top-1/2 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border-t-2 border-t-accent p-6 max-h-[calc(100dvh-2rem)] overflow-y-auto",
           side === "right" && "inset-y-0 right-0 w-[min(20rem,85vw)] border-y-0 border-r-0 p-6",
           "data-[state=open]:animate-fade-up",
           className,
@@ -28,7 +28,7 @@ export function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-lg p-1.5 text-muted transition hover:bg-white/5 hover:text-fg">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1.5 text-muted transition hover:bg-white/5 hover:text-fg">
           <X className="size-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>
@@ -38,7 +38,7 @@ export function DialogContent({
 }
 
 export function DialogTitle({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Title>) {
-  return <DialogPrimitive.Title className={cn("text-lg font-semibold tracking-tight", className)} {...props} />;
+  return <DialogPrimitive.Title className={cn("display text-2xl", className)} {...props} />;
 }
 
 export function DialogDescription({

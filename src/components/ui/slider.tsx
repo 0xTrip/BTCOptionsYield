@@ -8,10 +8,10 @@ export function Slider({ className, ...props }: React.ComponentProps<typeof Slid
       className={cn("relative flex w-full touch-none select-none items-center py-2", className)}
       {...props}
     >
-      <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-border-strong">
-        <SliderPrimitive.Range className="absolute h-full bg-gradient-to-r from-accent to-accent-2" />
+      <SliderPrimitive.Track className="relative h-1 w-full grow overflow-hidden rounded-full bg-border-strong">
+        <SliderPrimitive.Range className="absolute h-full bg-accent" />
       </SliderPrimitive.Track>
-      <SliderPrimitive.Thumb className="block size-5 cursor-grab rounded-full border-2 border-accent bg-bg shadow-[0_0_0_4px] shadow-accent/20 transition hover:shadow-accent/30 active:cursor-grabbing" />
+      <SliderPrimitive.Thumb className="block size-5 cursor-grab rounded-full border-[3px] border-accent bg-bg shadow-[0_0_0_6px] shadow-accent/15 transition hover:shadow-accent/25 active:cursor-grabbing" />
     </SliderPrimitive.Root>
   );
 }

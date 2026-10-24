@@ -27,8 +27,8 @@ export function AllocationDonut({
               dataKey="value"
               innerRadius="72%"
               outerRadius="100%"
-              paddingAngle={2}
-              cornerRadius={4}
+              paddingAngle={1.5}
+              cornerRadius={1}
               stroke="none"
               startAngle={90}
               endAngle={-270}
@@ -42,20 +42,20 @@ export function AllocationDonut({
         </ResponsiveContainer>
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
           <div>
-            <div className="num text-2xl font-semibold">{fmtPct(deployed, 0)}</div>
-            <div className="text-[11px] uppercase tracking-wider text-muted">{centerLabel}</div>
+            <div className="display text-3xl">{fmtPct(deployed, 0)}</div>
+            <div className="eyebrow mt-0.5 text-[10px]">{centerLabel}</div>
           </div>
         </div>
       </div>
       <ul className="w-full space-y-2.5">
         {STRATEGIES.map((s) => (
           <li key={s.id} className="flex items-center gap-3 text-sm">
-            <span className="size-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
+            <span className="size-2.5 shrink-0" style={{ background: s.color }} />
             <span className="flex-1 whitespace-nowrap text-muted">{s.short}</span>
             {total !== undefined && (
               <span className="num text-xs text-faint">{fmtCompact(total * allocation[s.id])}</span>
             )}
-            <span className="num w-10 text-right font-medium">{fmtPct(allocation[s.id], 0)}</span>
+            <span className="num w-10 text-right font-mono text-[13px] font-medium">{fmtPct(allocation[s.id], 0)}</span>
           </li>
         ))}
       </ul>

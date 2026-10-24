@@ -37,17 +37,17 @@ export function ConnectWalletDialog() {
               type="button"
               disabled={!!pending}
               onClick={() => choose(w.name)}
-              className="flex w-full items-center gap-3 rounded-xl border border-border bg-bg/50 p-3 text-left transition hover:border-accent/40 hover:bg-surface-2 disabled:opacity-60"
+              className="flex w-full items-center gap-3 rounded-md border border-border bg-bg p-3 text-left transition hover:border-accent disabled:opacity-60"
             >
               <span
-                className="grid size-10 place-items-center rounded-xl text-sm font-bold text-white"
+                className="grid size-10 place-items-center rounded-md text-sm font-bold text-white"
                 style={{ background: w.color }}
               >
                 {w.letter}
               </span>
               <span className="flex-1">
                 <span className="block text-sm font-medium">{w.name}</span>
-                <span className="block text-xs text-muted">{w.hint}</span>
+                <span className="block font-mono text-[11px] text-muted">{w.hint}</span>
               </span>
               {pending === w.name && <Loader2 className="size-4 animate-spin text-accent" />}
             </button>

@@ -69,7 +69,77 @@ export const VAULT = {
   apy30d: (SHARE_PRICE / priceAgo(30) - 1) * (365 / 30),
   returnAll: SHARE_PRICE - 1,
   btcSpot: PUT_EXAMPLE.spot,
+  premium30d: 187_240,
 };
+
+export const MARKET = {
+  btcChange24h: 0.0124,
+  iv30d: 0.482,
+};
+
+/** Expressed in BTC at the reference spot price */
+export const toBtc = (usd: number) => usd / VAULT.btcSpot;
+
+/* ---------- block height (≈ one block per 10 minutes) ---------- */
+
+const BLOCK_ANCHOR = { height: 968_000, ts: Date.UTC(2026, 9, 22, 0, 0, 0) };
+const BLOCK_MS = 600_000;
+
+export function blockHeight(now = Date.now()) {
+  return BLOCK_ANCHOR.height + Math.floor((now - BLOCK_ANCHOR.ts) / BLOCK_MS);
+}
+
+/* ---------- options book (Deribit-style instruments) ---------- */
+
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+/** Last Friday of the month, 08:00 UTC: Deribit's monthly expiry */
+function monthlyExpiry(year: number, month: number) {
+  const d = new Date(Date.UTC(year, month + 1, 0, 8));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 2) % 7));
+  return d.getTime();
+}
+
+function upcomingExpiries(count: number, minDays = 10) {
+  const out: number[] = [];
+  const now = new Date();
+  for (let i = 0; out.length < count; i++) {
+    const ts = monthlyExpiry(now.getUTCFullYear(), now.getUTCMonth() + i);
+    if (ts - now.getTime() > minDays * DAY_MS) out.push(ts);
+  }
+  return out;
+}
+
+export const fmtExpiryCode = (ts: number) => {
+  const d = new Date(ts);
+  return `${d.getUTCDate()}${MONTHS[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(2)}`;
+};
+
+const [E1, E2] = upcomingExpiries(2);
+export const NEXT_EXPIRY = E1;
+
+export type Position = {
+  instrument: string;
+  strategy: StrategyId;
+  label: string;
+  side: "Sold" | "Bought";
+  sizeBtc: number;
+  strike: number;
+  expiry: number;
+  avgPremium: number;
+  mark: number;
+};
+
+export const OPTIONS_BOOK: Position[] = [
+  { instrument: `BTC-${fmtExpiryCode(E1)}-73000-P`, strategy: "puts", label: "Short put", side: "Sold", sizeBtc: 60, strike: 73_000, expiry: E1, avgPremium: 1_200, mark: 640 },
+  { instrument: `BTC-${fmtExpiryCode(E2)}-70000-P`, strategy: "puts", label: "Short put", side: "Sold", sizeBtc: 40, strike: 70_000, expiry: E2, avgPremium: 1_650, mark: 1_320 },
+  { instrument: `BTC-${fmtExpiryCode(E1)}-70000/65000-P`, strategy: "spreads", label: "Put spread", side: "Sold", sizeBtc: 120, strike: 70_000, expiry: E1, avgPremium: 640, mark: 380 },
+  { instrument: `BTC-${fmtExpiryCode(E2)}-100000-C`, strategy: "calls", label: "Long call", side: "Bought", sizeBtc: 25, strike: 100_000, expiry: E2, avgPremium: 1_240, mark: 930 },
+  { instrument: `BTC-${fmtExpiryCode(E1)}-62000-P`, strategy: "hedges", label: "Long put", side: "Bought", sizeBtc: 30, strike: 62_000, expiry: E1, avgPremium: 210, mark: 120 },
+];
+
+export const positionPnl = (p: Position) =>
+  (p.side === "Sold" ? p.avgPremium - p.mark : p.mark - p.avgPremium) * p.sizeBtc;
 
 /* ---------- strategies ---------- */
 
@@ -98,7 +168,7 @@ export const STRATEGIES: Strategy[] = [
     regimes: ["sideways", "rising"],
     risk: "Medium",
     targetYield: "15–25% APR",
-    color: "#2dd4bf",
+    color: "#f7931a",
     payoff: "short-put",
   },
   {
@@ -110,7 +180,7 @@ export const STRATEGIES: Strategy[] = [
     regimes: ["sideways", "rising", "falling"],
     risk: "Low",
     targetYield: "8–14% APR",
-    color: "#0ea5e9",
+    color: "#ffc27a",
     payoff: "put-spread",
   },
   {
@@ -122,7 +192,7 @@ export const STRATEGIES: Strategy[] = [
     regimes: ["rising"],
     risk: "High",
     targetYield: "Up to 3× premium",
-    color: "#818cf8",
+    color: "#f6f4f1",
     payoff: "long-call",
   },
   {
@@ -134,7 +204,7 @@ export const STRATEGIES: Strategy[] = [
     regimes: ["falling"],
     risk: "Low",
     targetYield: "Protection",
-    color: "#f5c451",
+    color: "#b4500e",
     payoff: "long-put",
   },
   {
@@ -146,7 +216,7 @@ export const STRATEGIES: Strategy[] = [
     regimes: ["sideways", "rising", "falling"],
     risk: "Low",
     targetYield: "Liquidity",
-    color: "#64748b",
+    color: "#4a4643",
     payoff: "flat",
   },
 ];
@@ -266,6 +336,12 @@ export const BOOST_POOL = {
   monthlyBudget: 18_500,
 };
 
-export function nextDrawDate(now = new Date()) {
-  return new Date(now.getFullYear(), now.getMonth() + 1, 1, 12, 0, 0).getTime();
+/** Draws happen every 4,320 blocks (≈ 30 days); winners are picked from that block's hash */
+export const DRAW_INTERVAL_BLOCKS = 4_320;
+
+export function nextDraw(now = Date.now()) {
+  const height = blockHeight(now);
+  const block = Math.ceil((height + 1) / DRAW_INTERVAL_BLOCKS) * DRAW_INTERVAL_BLOCKS;
+  const ts = BLOCK_ANCHOR.ts + (block - BLOCK_ANCHOR.height) * BLOCK_MS;
+  return { block, ts };
 }

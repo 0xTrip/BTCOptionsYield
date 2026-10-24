@@ -12,7 +12,7 @@ const PATHS: Record<Strategy["payoff"], string> = {
 export function PayoffThumb({ kind, color }: { kind: Strategy["payoff"]; color: string }) {
   return (
     <svg viewBox="0 0 80 48" className="h-12 w-20" aria-hidden>
-      <line x1="2" y1="22" x2="78" y2="22" stroke="#2a3447" strokeDasharray="2 3" />
+      <line x1="2" y1="22" x2="78" y2="22" stroke="#33312e" strokeDasharray="2 3" />
       <path d={PATHS[kind]} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

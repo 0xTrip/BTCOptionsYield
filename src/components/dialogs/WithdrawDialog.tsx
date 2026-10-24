@@ -20,12 +20,12 @@ export function WithdrawTimeline({ requestedAt, unlockAt }: { requestedAt: numbe
     <ol className="grid grid-cols-3 gap-2">
       {steps.map((s, i) => (
         <li key={s.label} className="relative flex flex-col items-center text-center">
-          {i > 0 && <span className="absolute right-1/2 top-4 h-px w-full bg-gradient-to-r from-accent/60 to-border-strong" />}
-          <span className={`relative grid size-8 place-items-center rounded-full border ${i === 0 ? "border-accent bg-accent/15 text-accent" : "border-border-strong bg-surface-2 text-muted"}`}>
+          {i > 0 && <span className="absolute right-1/2 top-4 h-px w-full bg-border-strong" />}
+          <span className={`relative grid size-8 place-items-center rounded-full border ${i === 0 ? "border-accent bg-accent text-accent-fg" : "border-border-strong bg-surface-2 text-muted"}`}>
             <s.icon className="size-3.5" />
           </span>
-          <span className="mt-2 text-xs font-medium">{s.label}</span>
-          <span className="num mt-0.5 text-[11px] text-muted">{s.date}</span>
+          <span className="mt-2 text-xs font-semibold">{s.label}</span>
+          <span className="num mt-0.5 font-mono text-[10px] text-muted">{s.date}</span>
         </li>
       ))}
     </ol>
@@ -84,7 +84,7 @@ export function WithdrawDialog({ open, onOpenChange }: { open: boolean; onOpenCh
             <DialogDescription>Withdrawals have a {NOTICE_DAYS}-day notice period so the vault can unwind positions.</DialogDescription>
 
             <div className="mt-5">
-              <div className="mb-2 flex justify-between text-xs text-muted">
+              <div className="eyebrow mb-2 flex justify-between text-[10px]">
                 <span>Amount</span>
                 <span className="num">Available: {fmtUsd(balance)}</span>
               </div>
@@ -98,13 +98,13 @@ export function WithdrawDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               <p className="mt-2 h-4 text-xs text-down">{tooMuch ? "Amount exceeds your vault balance" : ""}</p>
             </div>
 
-            <div className="mt-2 rounded-xl border border-border bg-bg/40 px-4 py-2">
+            <div className="mt-2 rounded-md border border-border bg-bg/50 px-4 py-2">
               <Row label="Withdrawal value" value={fmtUsd(p.gross)} />
               <Row label={`Withdrawal fee (${fmtPct(FEES.withdraw, 0)})`} value={`−${fmtUsd(p.fee)}`} muted />
               <Row label="You receive (est.)" value={fmtUsd(p.net)} strong />
             </div>
 
-            <div className="mt-5 rounded-xl border border-border bg-bg/40 px-3 py-4">
+            <div className="mt-5 rounded-md border border-border bg-bg/50 px-3 py-4">
               <WithdrawTimeline requestedAt={Date.now()} unlockAt={p.unlockAt} />
             </div>
 

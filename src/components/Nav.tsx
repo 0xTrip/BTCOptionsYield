@@ -4,13 +4,14 @@ import { ArrowRight, LogOut, Menu, RotateCcw, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Logo } from "@/components/Logo";
+import { Ticker } from "@/components/Ticker";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/useUi";
 import { useVault } from "@/store/useVault";
 
 const MARKETING_LINKS = [
   { href: "#how", label: "How it works" },
-  { href: "#strategies", label: "Strategies" },
+  { href: "#book", label: "Options book" },
   { href: "#fees", label: "Fees" },
   { href: "#boost", label: "Lucky Boost" },
 ];
@@ -22,8 +23,8 @@ const APP_LINKS = [
 
 export function DemoBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-gold">
-      <span className="size-1.5 rounded-full bg-gold animate-pulse-soft" />
+    <span className="inline-flex items-center gap-1.5 rounded-sm border border-accent/40 px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-widest text-accent">
+      <span className="size-1.5 rounded-full bg-accent animate-pulse-soft" />
       Demo
     </span>
   );
@@ -47,14 +48,16 @@ function WalletButton() {
       type="button"
       onClick={disconnect}
       title="Disconnect"
-      className="group flex h-9 items-center gap-2 rounded-xl border border-border-strong bg-surface-2 px-3 text-xs font-medium transition hover:border-down/40"
+      className="group flex h-9 items-center gap-2 whitespace-nowrap rounded-md border border-border-strong px-2.5 font-mono text-[11px] transition hover:border-down/50 sm:px-3 sm:text-xs"
     >
-      <span className="size-2 rounded-full bg-up group-hover:bg-down" />
+      <span className="size-1.5 rounded-full bg-up group-hover:bg-down" />
       <span className="num">{`${address.slice(0, 6)}…${address.slice(-4)}`}</span>
-      <LogOut className="size-3.5 text-muted group-hover:text-down" />
+      <LogOut className="hidden size-3.5 text-muted group-hover:text-down sm:block" />
     </button>
   );
 }
+
+const linkBase = "relative px-3 py-2 text-sm font-medium transition-colors";
 
 export function Nav({ variant }: { variant: "marketing" | "app" }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,55 +71,59 @@ export function Nav({ variant }: { variant: "marketing" | "app" }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 sm:px-6">
-        <Logo to={variant === "app" ? "/app" : "/"} />
+    <header className="sticky top-0 z-40 bg-bg/85 backdrop-blur-md">
+      <Ticker />
+      <div className="border-b border-border">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-6 sm:px-6">
+          <Logo to={variant === "app" ? "/app" : "/"} />
 
-        <nav className="hidden items-center gap-1 md:flex">
-          {variant === "marketing"
-            ? MARKETING_LINKS.map((l) => (
-                <a key={l.href} href={l.href} className="rounded-lg px-3 py-2 text-sm text-muted transition hover:text-fg">
-                  {l.label}
-                </a>
-              ))
-            : APP_LINKS.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  end={l.end}
-                  className={({ isActive }) =>
-                    cn(
-                      "rounded-lg px-3 py-2 text-sm transition",
-                      isActive ? "bg-white/5 text-fg" : "text-muted hover:text-fg",
-                    )
-                  }
-                >
-                  {l.label}
-                </NavLink>
-              ))}
-        </nav>
+          <nav className="hidden items-center md:flex">
+            {variant === "marketing"
+              ? MARKETING_LINKS.map((l) => (
+                  <a key={l.href} href={l.href} className={cn(linkBase, "text-muted hover:text-fg")}>
+                    {l.label}
+                  </a>
+                ))
+              : APP_LINKS.map((l) => (
+                  <NavLink
+                    key={l.to}
+                    to={l.to}
+                    end={l.end}
+                    className={({ isActive }) =>
+                      cn(
+                        linkBase,
+                        "after:absolute after:inset-x-3 after:-bottom-[13px] after:h-0.5 after:transition-colors",
+                        isActive ? "text-fg after:bg-accent" : "text-muted after:bg-transparent hover:text-fg",
+                      )
+                    }
+                  >
+                    {l.label}
+                  </NavLink>
+                ))}
+          </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <span className="hidden sm:inline-flex">
-            <DemoBadge />
-          </span>
-          {variant === "marketing" ? (
-            <Button asChild size="sm" className="h-9">
-              <Link to="/app">
-                Launch App <ArrowRight />
-              </Link>
-            </Button>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" className="hidden h-9 lg:inline-flex" onClick={doReset}>
-                <RotateCcw /> Reset demo
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden sm:inline-flex">
+              <DemoBadge />
+            </span>
+            {variant === "marketing" ? (
+              <Button asChild size="sm" className="h-9">
+                <Link to="/app">
+                  Launch App <ArrowRight />
+                </Link>
               </Button>
-              <WalletButton />
-            </>
-          )}
-          <Button variant="ghost" size="icon" className="size-9 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
-            <Menu className="size-5" />
-          </Button>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" className="hidden h-9 lg:inline-flex" onClick={doReset}>
+                  <RotateCcw /> Reset demo
+                </Button>
+                <WalletButton />
+              </>
+            )}
+            <Button variant="ghost" size="icon" className="size-9 md:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
+              <Menu className="size-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -126,10 +133,10 @@ export function Nav({ variant }: { variant: "marketing" | "app" }) {
           <div className="mb-8 mt-1">
             <DemoBadge />
           </div>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col">
             {variant === "marketing"
               ? MARKETING_LINKS.map((l) => (
-                  <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 text-base text-muted hover:bg-white/5 hover:text-fg">
+                  <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)} className="border-b border-border py-4 text-lg font-medium text-muted hover:text-fg">
                     {l.label}
                   </a>
                 ))
@@ -140,25 +147,24 @@ export function Nav({ variant }: { variant: "marketing" | "app" }) {
                     end={l.end}
                     onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
-                      cn("rounded-lg px-3 py-3 text-base", isActive ? "bg-white/5 text-fg" : "text-muted hover:text-fg")
+                      cn("border-b border-border py-4 text-lg font-medium", isActive ? "text-accent" : "text-muted hover:text-fg")
                     }
                   >
                     {l.label}
                   </NavLink>
                 ))}
-            <div className="my-3 h-px bg-border" />
             {variant === "marketing" ? (
-              <Button asChild className="mt-2">
+              <Button asChild className="mt-6">
                 <Link to="/app" onClick={() => setMenuOpen(false)}>
                   Launch App <ArrowRight />
                 </Link>
               </Button>
             ) : (
               <>
-                <Link to="/" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-3 text-base text-muted hover:text-fg">
+                <Link to="/" onClick={() => setMenuOpen(false)} className="border-b border-border py-4 text-lg font-medium text-muted hover:text-fg">
                   Home
                 </Link>
-                <button type="button" onClick={doReset} className="flex items-center gap-2 rounded-lg px-3 py-3 text-left text-base text-muted hover:text-fg">
+                <button type="button" onClick={doReset} className="flex items-center gap-2 py-4 text-left text-lg font-medium text-muted hover:text-fg">
                   <RotateCcw className="size-4" /> Reset demo
                 </button>
               </>

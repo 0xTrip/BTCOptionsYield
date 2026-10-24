@@ -1,28 +1,35 @@
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/archivo/wdth.css";
 
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-display: "Archivo Variable", "Geist Variable", ui-sans-serif, sans-serif;
 
-  --color-bg: #07090f;
-  --color-surface: #0d111b;
-  --color-surface-2: #121826;
-  --color-border: #1e2636;
-  --color-border-strong: #2a3447;
-  --color-fg: #eef2f8;
-  --color-muted: #8b96ab;
-  --color-faint: #5b667c;
+  --color-bg: #050505;
+  --color-surface: #0d0d0c;
+  --color-surface-2: #161615;
+  --color-border: #222120;
+  --color-border-strong: #33312e;
+  --color-fg: #f6f4f1;
+  --color-muted: #a8a29e;
+  --color-faint: #6f6964;
 
-  --color-accent: #2dd4bf;
-  --color-accent-2: #0ea5e9;
-  --color-accent-fg: #04110f;
-  --color-gold: #f5c451;
+  /* Bitcoin orange */
+  --color-accent: #f7931a;
+  --color-accent-2: #ffb85c;
+  --color-accent-deep: #b45309;
+  --color-accent-fg: #0a0500;
+  --color-gold: #ffc15e;
   --color-btc: #f7931a;
-  --color-up: #34d399;
-  --color-down: #f87171;
+  --color-up: #3ddc84;
+  --color-down: #ff5c5c;
 
   --animate-fade-up: fade-up 0.5s ease-out both;
   --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
+  --animate-marquee: marquee 60s linear infinite;
 
   @keyframes fade-up {
     from { opacity: 0; transform: translateY(8px); }
@@ -30,7 +37,11 @@
   }
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.45; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
   }
 }
 
@@ -41,10 +52,10 @@
   }
   body {
     @apply bg-bg text-fg font-sans antialiased;
-    font-feature-settings: "ss01", "cv11";
   }
   ::selection {
-    background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+    background: color-mix(in oklab, var(--color-accent) 45%, transparent);
+    color: #fff;
   }
   :focus-visible {
     outline: 2px solid var(--color-accent);
@@ -54,26 +65,49 @@
 
 @utility num {
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+}
+
+/* Heavy, slightly expanded display type for headlines and big numbers */
+@utility display {
+  font-family: var(--font-display);
+  font-stretch: 112%;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small monospaced uppercase data labels */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 @utility card {
-  @apply rounded-2xl border border-border bg-surface/80 backdrop-blur-sm;
-  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 20px 40px -24px rgb(0 0 0 / 0.6);
+  @apply rounded-lg border border-border bg-surface;
 }
 
 @utility text-gradient {
-  background: linear-gradient(100deg, var(--color-accent) 0%, var(--color-accent-2) 60%, #818cf8 100%);
+  background: linear-gradient(95deg, var(--color-accent) 0%, var(--color-accent-2) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
+@utility bg-dots {
+  background-image: radial-gradient(rgb(247 147 26 / 0.16) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
 @utility bg-grid {
   background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 /* Recharts: drop the default focus rectangle on click */

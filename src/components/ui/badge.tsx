@@ -2,9 +2,9 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const tones = {
-  default: "border-border-strong bg-surface-2 text-muted",
-  accent: "border-accent/30 bg-accent/10 text-accent",
-  gold: "border-gold/30 bg-gold/10 text-gold",
+  default: "border-border-strong text-muted",
+  accent: "border-accent/40 bg-accent/10 text-accent",
+  gold: "border-gold/40 bg-gold/10 text-gold",
   up: "border-up/30 bg-up/10 text-up",
   down: "border-down/30 bg-down/10 text-down",
 };
@@ -17,7 +17,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4",
+        "inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase leading-4 tracking-wider",
         tones[tone],
         className,
       )}

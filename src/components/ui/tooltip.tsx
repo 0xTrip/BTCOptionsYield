@@ -13,7 +13,7 @@ export function Tip({ children, content, className }: { children: React.ReactNod
         <TooltipPrimitive.Content
           sideOffset={6}
           className={cn(
-            "z-50 max-w-64 rounded-lg border border-border-strong bg-surface-2 px-3 py-2 text-xs leading-relaxed text-fg shadow-xl animate-fade-up",
+            "z-50 max-w-64 rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-xs leading-relaxed text-fg shadow-xl animate-fade-up",
             className,
           )}
         >
@@ -27,7 +27,7 @@ export function Tip({ children, content, className }: { children: React.ReactNod
 export function InfoTip({ content }: { content: React.ReactNode }) {
   return (
     <Tip content={content}>
-      <button type="button" className="inline-flex text-faint transition hover:text-muted" aria-label="More info">
+      <button type="button" className="inline-flex text-current opacity-50 transition hover:opacity-100" aria-label="More info">
         <Info className="size-3.5" />
       </button>
     </Tip>

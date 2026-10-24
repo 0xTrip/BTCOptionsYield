@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Bitcoin, Clock, Coins, Landmark, Percent, TrendingUp, Users, Wallet } from "lucide-react";
+import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Segmented } from "@/components/ui/segmented";
-import { StatCard } from "@/components/StatCard";
+import { Kpi, KpiGrid } from "@/components/Kpi";
+import { OptionsBook } from "@/components/OptionsBook";
 import { ActivityList } from "@/components/ActivityList";
 import { PendingWithdrawals } from "@/components/PendingWithdrawals";
 import { LuckyBoostCard } from "@/components/LuckyBoostCard";
@@ -12,8 +13,8 @@ import { PerformanceChart, usePerformance, type Range } from "@/components/chart
 import { AllocationDonut } from "@/components/charts/AllocationDonut";
 import { DepositDialog } from "@/components/dialogs/DepositDialog";
 import { WithdrawDialog } from "@/components/dialogs/WithdrawDialog";
-import { ALLOCATIONS, CURRENT_REGIME, REGIME_LABEL, SHARE_PRICE, VAULT } from "@/data/mock";
-import { fmtCompact, fmtDate, fmtNum, fmtPct, fmtSigned, fmtSignedPct, fmtUsd, fmtUsd0 } from "@/lib/format";
+import { ALLOCATIONS, CURRENT_REGIME, REGIME_LABEL, SHARE_PRICE, VAULT, toBtc } from "@/data/mock";
+import { fmtBtc, fmtCompact, fmtDate, fmtNum, fmtPct, fmtSigned, fmtSignedPct, fmtUsd, fmtUsd0 } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/useUi";
 import { useVault } from "@/store/useVault";
@@ -24,6 +25,18 @@ const RANGES: { value: Range; label: string }[] = [
   { value: "90d", label: "90D" },
   { value: "all", label: "All" },
 ];
+
+function Panel({ title, right, children, className }: { title: string; right?: ReactNode; children: ReactNode; className?: string }) {
+  return (
+    <section className={cn("card flex flex-col", className)}>
+      <header className="flex min-h-12 items-center justify-between gap-3 border-b border-border px-5 py-2.5">
+        <h2 className="eyebrow text-fg">{title}</h2>
+        {right}
+      </header>
+      <div className="flex flex-1 flex-col p-5">{children}</div>
+    </section>
+  );
+}
 
 export default function Dashboard() {
   const connected = useVault((s) => s.connected);
@@ -54,13 +67,16 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="animate-fade-up">
-          <div className="flex items-center gap-2 text-sm text-muted">
-            <span className="size-1.5 rounded-full bg-up animate-pulse-soft" />
-            Vault live · {REGIME_LABEL[CURRENT_REGIME]} market regime
+          <div className="eyebrow flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="flex items-center gap-1.5 text-up">
+              <span className="size-1.5 rounded-full bg-up animate-pulse-soft" /> Vault live
+            </span>
+            <span className="text-border-strong">/</span>
+            <span>{REGIME_LABEL[CURRENT_REGIME]} regime</span>
+            <span className="text-border-strong">/</span>
+            <span>BTC {fmtUsd0(VAULT.btcSpot)}</span>
           </div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            {connected ? "Your vault" : "BTC Options Vault"}
-          </h1>
+          <h1 className="display mt-3 text-4xl sm:text-5xl">{connected ? "Your vault" : "BTC Yield Vault"}</h1>
         </div>
         <div className="flex gap-2">
           <Button size="lg" className="flex-1 sm:flex-none" onClick={requireWallet(() => setDepositOpen(true))}>
@@ -80,14 +96,14 @@ export default function Dashboard() {
 
       {/* Connect banner */}
       {!connected && (
-        <div className="card relative mt-8 overflow-hidden p-6 sm:p-8 animate-fade-up">
-          <div className="pointer-events-none absolute inset-0 bg-grid opacity-60 [mask-image:linear-gradient(to_left,black,transparent_70%)]" />
-          <div className="pointer-events-none absolute -right-20 -top-24 size-72 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative mt-8 overflow-hidden rounded-lg border border-accent/40 bg-accent/[0.06] p-6 animate-fade-up sm:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-dots [mask-image:linear-gradient(to_left,black,transparent_60%)]" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Connect a wallet to start earning</h2>
-              <p className="mt-1 max-w-lg text-sm text-muted">
-                Deposit USDC and earn {fmtPct(VAULT.apy30d)} (30-day annualised) from a managed basket of BTC options strategies.
+              <h2 className="display text-2xl">Connect a wallet to start earning</h2>
+              <p className="mt-2 max-w-lg text-sm text-muted">
+                Deposit USDC and earn <span className="text-accent">{fmtPct(VAULT.apy30d)} BTC Yield</span> (30-day annualised)
+                from a managed book of Bitcoin options.
               </p>
             </div>
             <Button size="lg" onClick={() => setConnectOpen(true)}>
@@ -98,113 +114,114 @@ export default function Dashboard() {
       )}
 
       {/* KPIs */}
-      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <KpiGrid className="mt-8 grid-cols-2 lg:grid-cols-4">
         {connected ? (
           <>
-            <StatCard
-              highlight
-              icon={Wallet}
+            <Kpi
               label="Your balance"
               value={fmtUsd(balance)}
-              sub={<span className="num">{fmtNum(shares, 2)} shares · Wallet {fmtUsd0(walletUsdc)}</span>}
+              sub={`≈ ${fmtBtc(toBtc(balance))} · ${fmtNum(shares, 2)} shares`}
             />
-            <StatCard
-              icon={TrendingUp}
-              label="Total earnings"
-              tip="Current value minus what you deposited (after fees)."
+            <Kpi
+              label="Earned"
+              tip="Current value minus what you deposited, after fees."
               value={<span className={earnings >= 0 ? "text-up" : "text-down"}>{fmtSigned(earnings)}</span>}
-              sub={costBasis > 0 ? `${fmtSignedPct(earnings / costBasis, 2)} on ${fmtUsd0(costBasis)} deposited` : "No deposits yet"}
+              sub={costBasis > 0 ? `${fmtSignedPct(earnings / costBasis, 2)} · ≈ ${fmtBtc(toBtc(earnings), 5)}` : "No deposits yet"}
             />
-            <StatCard
-              icon={Percent}
-              label="Current yield"
-              tip="Vault share price change over the last 30 days, annualised. Yield is variable."
-              value={<span className="text-accent">{fmtPct(VAULT.apy30d)}</span>}
-              sub="30-day annualised · variable"
+            <Kpi
+              accent
+              label="BTC Yield 30D"
+              tip="Vault share price change over the last 30 days, annualised. Variable."
+              value={fmtPct(VAULT.apy30d)}
+              sub="Annualised · variable"
             />
-            <StatCard
-              icon={Clock}
+            <Kpi
               label="Pending withdrawals"
               value={fmtUsd(pendingTotal)}
-              sub={nextUnlock ? `Next claimable ${fmtDate(nextUnlock)}` : "Nothing pending"}
+              sub={nextUnlock ? `Claimable ${fmtDate(nextUnlock)}` : `Wallet ${fmtUsd0(walletUsdc)}`}
             />
           </>
         ) : (
           <>
-            <StatCard highlight icon={Landmark} label="Total value locked" value={fmtCompact(VAULT.tvl)} sub="USDC across all depositors" />
-            <StatCard icon={Percent} label="Current yield" value={<span className="text-accent">{fmtPct(VAULT.apy30d)}</span>} sub="30-day annualised · variable" />
-            <StatCard icon={Users} label="Depositors" value={VAULT.depositors.toLocaleString("en-US")} sub="Wallets with an active position" />
-            <StatCard icon={Bitcoin} label="BTC spot" value={fmtUsd0(VAULT.btcSpot)} sub="Reference price for strategies" />
+            <Kpi label="Vault TVL" value={fmtCompact(VAULT.tvl)} sub={`≈ ${fmtBtc(toBtc(VAULT.tvl), 1)}`} />
+            <Kpi accent label="BTC Yield 30D" value={fmtPct(VAULT.apy30d)} sub="Annualised · variable" />
+            <Kpi label="Premium 30D" value={fmtUsd0(VAULT.premium30d)} sub={`≈ ${fmtBtc(toBtc(VAULT.premium30d), 2)}`} />
+            <Kpi label="Depositors" value={VAULT.depositors.toLocaleString("en-US")} sub="Active wallets" />
           </>
         )}
-      </div>
+      </KpiGrid>
 
       {/* Chart + allocation */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="card p-5 sm:p-6 lg:col-span-2">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className="font-semibold">Vault performance</h2>
-              <div className="mt-1 flex items-baseline gap-3">
-                <span className={cn("num text-2xl font-semibold", perf.vaultReturn >= 0 ? "text-up" : "text-down")}>
-                  {fmtSignedPct(perf.vaultReturn, 2)}
-                </span>
-                {showBtc && (
-                  <span className="num text-sm text-muted">
-                    BTC <span className={perf.btcReturn >= 0 ? "text-up" : "text-down"}>{fmtSignedPct(perf.btcReturn, 1)}</span>
-                  </span>
-                )}
-              </div>
-            </div>
+        <Panel
+          className="lg:col-span-2"
+          title="Vault performance"
+          right={
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowBtc((v) => !v)}
                 aria-pressed={showBtc}
                 className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition",
-                  showBtc ? "border-btc/40 bg-btc/10 text-btc" : "border-border text-muted hover:text-fg",
+                  "flex h-7 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] uppercase tracking-wider transition",
+                  showBtc ? "border-fg/40 text-fg" : "border-border-strong text-muted hover:text-fg",
                 )}
               >
-                <span className="h-0.5 w-3 rounded bg-current" /> BTC
+                <span className="h-px w-3 border-t border-dashed border-current" /> vs BTC
               </button>
-              <Segmented value={range} onChange={setRange} options={RANGES} />
+              <Segmented value={range} onChange={setRange} options={RANGES} className="hidden sm:inline-flex" />
             </div>
+          }
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <div className="flex items-baseline gap-4">
+              <span className={cn("display text-4xl", perf.vaultReturn >= 0 ? "text-accent" : "text-down")}>
+                {fmtSignedPct(perf.vaultReturn, 2)}
+              </span>
+              {showBtc && (
+                <span className="font-mono text-xs text-muted">
+                  BTC <span className={perf.btcReturn >= 0 ? "text-up" : "text-down"}>{fmtSignedPct(perf.btcReturn, 1)}</span>
+                </span>
+              )}
+            </div>
+            <Segmented value={range} onChange={setRange} options={RANGES} className="sm:hidden" />
           </div>
-          <div className="mt-6 -ml-2">
-            <PerformanceChart data={perf.data} showBtc={showBtc} />
+          <div className="-ml-2 mt-6">
+            <PerformanceChart data={perf.data} showBtc={showBtc} height={260} />
           </div>
-        </div>
+        </Panel>
 
-        <div className="card flex flex-col p-5 sm:p-6">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="font-semibold">Strategy allocation</h2>
-            <Badge tone="accent">{REGIME_LABEL[CURRENT_REGIME]}</Badge>
-          </div>
+        <Panel title="Allocation" right={<Badge tone="accent">{REGIME_LABEL[CURRENT_REGIME]}</Badge>}>
           <AllocationDonut stacked allocation={ALLOCATIONS[CURRENT_REGIME]} total={VAULT.tvl} />
           <Link
             to="/app/strategies"
-            className="mt-auto flex items-center gap-1 pt-6 text-sm font-medium text-accent transition hover:gap-2"
+            className="mt-auto flex items-center gap-1 pt-6 font-mono text-[11px] uppercase tracking-wider text-accent transition hover:gap-2"
           >
-            How the strategies work <ArrowRight className="size-4" />
+            How the strategies work <ArrowRight className="size-3.5" />
           </Link>
+        </Panel>
+      </div>
+
+      {/* Options book */}
+      <div className="mt-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="eyebrow text-fg">Options book</h2>
+          <span className="eyebrow text-faint">Deribit · OKX</span>
         </div>
+        <OptionsBook />
       </div>
 
       {/* Activity + boost */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {connected && pending.length > 0 && <PendingWithdrawals items={pending} />}
-          <div className="card p-5 sm:p-6">
-            <h2 className="mb-2 flex items-center gap-2 font-semibold">
-              <Coins className="size-4 text-muted" /> Recent activity
-            </h2>
+          <Panel title="Recent activity">
             {connected ? (
               <ActivityList items={activity.slice(0, 8)} />
             ) : (
               <div className="py-10 text-center text-sm text-muted">Connect a wallet to see your activity.</div>
             )}
-          </div>
+          </Panel>
         </div>
         <div className="lg:self-start">
           <LuckyBoostCard balance={connected ? balance : null} firstDepositAt={firstDepositAt} />

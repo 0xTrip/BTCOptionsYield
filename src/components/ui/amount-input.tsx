@@ -18,7 +18,7 @@ export function AmountInput({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border bg-bg/70 px-4 py-3 transition focus-within:border-accent/60",
+        "flex items-center gap-3 rounded-md border bg-bg px-4 py-3 transition focus-within:border-accent",
         invalid ? "border-down/60" : "border-border-strong",
       )}
     >
@@ -31,19 +31,19 @@ export function AmountInput({
           const v = e.target.value.replace(/,/g, "");
           if (/^\d*\.?\d{0,6}$/.test(v)) onChange(v);
         }}
-        className="num min-w-0 flex-1 bg-transparent text-2xl font-semibold outline-none placeholder:text-faint"
+        className="display min-w-0 flex-1 bg-transparent text-3xl outline-none placeholder:text-faint"
         aria-label={`Amount in ${unit}`}
       />
       {onMax && (
         <button
           type="button"
           onClick={onMax}
-          className="rounded-md border border-accent/30 bg-accent/10 px-2 py-1 text-xs font-semibold text-accent transition hover:bg-accent/20"
+          className="rounded-sm border border-accent/40 bg-accent/10 px-2 py-1 font-mono text-[10px] font-semibold tracking-wider text-accent transition hover:bg-accent hover:text-accent-fg"
         >
           MAX
         </button>
       )}
-      <span className="flex items-center gap-1.5 text-sm font-medium text-muted">
+      <span className="flex items-center gap-1.5 font-mono text-xs font-medium text-muted">
         <UsdcIcon /> {unit}
       </span>
     </div>

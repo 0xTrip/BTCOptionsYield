@@ -30,12 +30,12 @@ export function PerformanceChart({ data, showBtc, height = 280 }: { data: Point[
       <ComposedChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
         <defs>
           <linearGradient id="vault-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.32} />
-            <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0} />
+            <stop offset="0%" stopColor="#f7931a" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="#f7931a" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="vault-stroke" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="#2dd4bf" />
-            <stop offset="100%" stopColor="#0ea5e9" />
+            <stop offset="0%" stopColor="#b4500e" />
+            <stop offset="100%" stopColor="#ffb85c" />
           </linearGradient>
         </defs>
         <XAxis
@@ -43,7 +43,7 @@ export function PerformanceChart({ data, showBtc, height = 280 }: { data: Point[
           type="number"
           domain={["dataMin", "dataMax"]}
           tickFormatter={fmtShortDate}
-          tick={{ fill: "#5b667c", fontSize: 11 }}
+          tick={{ fill: "#6f6964", fontSize: 10, fontFamily: "Geist Mono Variable" }}
           axisLine={false}
           tickLine={false}
           minTickGap={40}
@@ -51,27 +51,27 @@ export function PerformanceChart({ data, showBtc, height = 280 }: { data: Point[
         />
         <YAxis
           tickFormatter={(v: number) => (v === 0 ? "0%" : fmtSignedPct(v, Math.abs(v) < 0.1 ? 1 : 0))}
-          tick={{ fill: "#5b667c", fontSize: 11 }}
+          tick={{ fill: "#6f6964", fontSize: 10, fontFamily: "Geist Mono Variable" }}
           axisLine={false}
           tickLine={false}
           width={48}
           domain={["auto", "auto"]}
         />
         <Tooltip
-          cursor={{ stroke: "#2a3447", strokeDasharray: "3 3" }}
+          cursor={{ stroke: "#33312e", strokeDasharray: "3 3" }}
           content={({ active, payload }) => {
             if (!active || !payload?.length) return null;
             const p = payload[0].payload as Point;
             return (
-              <div className="rounded-xl border border-border-strong bg-surface-2/95 px-3 py-2.5 text-xs shadow-xl backdrop-blur">
-                <div className="mb-1.5 text-muted">{fmtShortDate(p.ts)}</div>
+              <div className="rounded-md border border-border-strong bg-surface-2 px-3 py-2.5 font-mono text-[11px] shadow-xl">
+                <div className="mb-1.5 uppercase tracking-wider text-faint">{fmtShortDate(p.ts)}</div>
                 <div className="flex items-center justify-between gap-6">
-                  <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-accent" />Vault</span>
+                  <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-accent" />Vault share</span>
                   <span className="num font-medium">{fmtSignedPct(p.vault, 2)} · {fmtNum(p.sharePrice, 4)}</span>
                 </div>
                 {showBtc && (
                   <div className="mt-1 flex items-center justify-between gap-6">
-                    <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-btc" />BTC</span>
+                    <span className="flex items-center gap-1.5"><i className="size-2 rounded-full bg-fg" />BTC</span>
                     <span className="num font-medium">{fmtSignedPct(p.btc, 2)} · {fmtUsd0(p.btcPrice)}</span>
                   </div>
                 )}
@@ -80,7 +80,7 @@ export function PerformanceChart({ data, showBtc, height = 280 }: { data: Point[
           }}
         />
         {showBtc && (
-          <Line type="monotone" dataKey="btc" stroke="#f7931a" strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="btc" stroke="#f6f4f1" strokeOpacity={0.45} strokeWidth={1.25} strokeDasharray="3 4" dot={false} isAnimationActive={false} />
         )}
         <Area
           type="monotone"
@@ -89,7 +89,7 @@ export function PerformanceChart({ data, showBtc, height = 280 }: { data: Point[
           strokeWidth={2.25}
           fill="url(#vault-fill)"
           dot={false}
-          activeDot={{ r: 4, fill: "#2dd4bf", stroke: "#07090f", strokeWidth: 2 }}
+          activeDot={{ r: 4, fill: "#f7931a", stroke: "#050505", strokeWidth: 2 }}
           animationDuration={600}
         />
       </ComposedChart>

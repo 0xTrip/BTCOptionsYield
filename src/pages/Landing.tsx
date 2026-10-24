@@ -1,35 +1,20 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Building2, CalendarClock, ChartCandlestick, FileText, Sparkles, Ticket, Wallet } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Boxes, Hash, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, KpiGrid } from "@/components/Kpi";
+import { OptionsBook } from "@/components/OptionsBook";
+import { SectionHeading } from "@/components/SectionHeading";
 import { PerformanceChart, usePerformance } from "@/components/charts/PerformanceChart";
 import { PayoffThumb } from "@/components/charts/PayoffThumb";
 import { FEES, NOTICE_DAYS } from "@/config";
-import { BOOST_POOL, BOOST_TIERS, SHARE_PRICE, STRATEGIES, VAULT } from "@/data/mock";
-import { fmtCompact, fmtNum, fmtPct, fmtSignedPct, fmtUsd, fmtUsd0 } from "@/lib/format";
+import { BOOST_POOL, BOOST_TIERS, DRAW_INTERVAL_BLOCKS, SHARE_PRICE, STRATEGIES, VAULT, nextDraw, toBtc } from "@/data/mock";
+import { fmtBtc, fmtCompact, fmtNum, fmtPct, fmtSignedPct, fmtUsd, fmtUsd0 } from "@/lib/format";
 
-const SAMPLE_POSITIONS = [
-  { name: "BTC $73k Put", meta: "Sold · 29 Nov", pnl: 1200 },
-  { name: "BTC $70k / $65k Put spread", meta: "Sold · 29 Nov", pnl: 640 },
-  { name: "BTC $100k Call", meta: "Bought · 26 Dec", pnl: -310 },
-];
-
-const STEPS = [
-  {
-    icon: Wallet,
-    title: "Deposit USDC",
-    body: "Connect your wallet and deposit stablecoins. You receive vault shares that track the vault's value.",
-  },
-  {
-    icon: ChartCandlestick,
-    title: "We run the options book",
-    body: "Professional traders sell BTC puts, run spreads and add hedges, adjusting the basket as the market moves.",
-  },
-  {
-    icon: CalendarClock,
-    title: "Earn, then withdraw",
-    body: `Yield accrues to your share price. Request a withdrawal any time and claim it after ${NOTICE_DAYS} days.`,
-  },
+const FLOW = [
+  { title: "Deposit USDC", body: "Your stablecoins enter the vault and you receive shares priced in USDC." },
+  { title: "Sell BTC volatility", body: "Traders pay to hedge Bitcoin. We sell them puts and spreads on Deribit and OKX." },
+  { title: "Collect premium", body: "Premium is paid upfront and compounds into the vault share price." },
+  { title: `Withdraw at T+${NOTICE_DAYS}`, body: `Request any time. USDC is claimable ${NOTICE_DAYS} days later as positions roll off.` },
 ];
 
 function workedExample(deposit: number, grossReturn: number) {
@@ -40,159 +25,156 @@ function workedExample(deposit: number, grossReturn: number) {
   const value = invested + profit - profitShare;
   const exitFee = value * FEES.withdraw;
   const receive = value - exitFee;
-  return { entryFee, invested, profit, profitShare, exitFee, receive, net: receive / deposit - 1 };
+  return { entryFee, profit, profitShare, exitFee, receive, net: receive / deposit - 1 };
 }
 
 export default function Landing() {
   const perf = usePerformance("all");
   const ex = workedExample(10_000, 0.2);
+  const draw = nextDraw();
 
   return (
     <>
       {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_top,black_30%,transparent_75%)]" />
-        <div className="pointer-events-none absolute left-1/2 top-[-12rem] h-[32rem] w-[52rem] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]" />
+      <section className="relative overflow-hidden border-b border-border">
+        <div className="pointer-events-none absolute inset-0 bg-dots [mask-image:radial-gradient(ellipse_at_70%_20%,black,transparent_65%)]" />
+        <div className="pointer-events-none absolute -right-40 -top-40 size-[44rem] rounded-full bg-accent/[0.13] blur-[140px]" />
+        <div
+          aria-hidden
+          className="display pointer-events-none absolute -bottom-24 right-[-4rem] hidden select-none text-[44rem] leading-none text-accent/[0.04] lg:block"
+        >
+          ₿
+        </div>
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-2 lg:pb-24">
+        <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.15fr_1fr] lg:items-end lg:pb-24">
           <div className="animate-fade-up">
-            <Badge tone="accent" className="px-3 py-1 text-xs">
-              <span className="size-1.5 rounded-full bg-accent" /> Bitcoin options · USDC vault
-            </Badge>
-            <h1 className="mt-6 text-[2.6rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-              Put your stablecoins to work in <span className="text-gradient">Bitcoin options</span>
+            <div className="eyebrow flex items-center gap-2 text-accent">
+              <span className="size-1.5 bg-accent" /> Bitcoin options vault · USDC
+            </div>
+            <h1 className="display mt-6 text-[3.1rem] leading-[0.95] sm:text-7xl lg:text-[5.4rem]">
+              Bitcoin volatility,
+              <br />
+              paid out as <span className="text-accent">yield.</span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">
-              Deposit USDC into a professionally managed basket of BTC options strategies. Earn yield from option
-              premiums without managing a single trade.
+            <p className="mt-7 max-w-lg text-lg leading-relaxed text-muted">
+              Deposit USDC. The vault sells Bitcoin options to traders who want protection, and the premium they pay
+              compounds into your share price.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">
                 <Link to="/app">
-                  Launch App <ArrowRight />
+                  Start earning <ArrowRight />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="secondary">
-                <a href="#how">How it works</a>
+                <a href="#book">See the options book</a>
               </Button>
             </div>
-            <dl className="mt-10 grid max-w-md grid-cols-3 gap-6">
-              {[
-                ["Current yield", fmtPct(VAULT.apy30d)],
-                ["Vault TVL", fmtCompact(VAULT.tvl)],
-                ["Notice period", `T+${NOTICE_DAYS}`],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <dt className="text-xs text-muted">{k}</dt>
-                  <dd className="num mt-1 text-xl font-semibold">{v}</dd>
-                </div>
-              ))}
-            </dl>
           </div>
 
-          {/* Hero visual */}
+          {/* BTC Yield panel */}
           <div className="relative animate-fade-up [animation-delay:120ms]">
-            <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-accent/20 via-transparent to-accent-2/10 blur-2xl" />
-            <div className="card relative p-5 sm:p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-xs text-muted">Vault share price</div>
-                  <div className="num mt-1 text-3xl font-semibold">
-                    {fmtNum(SHARE_PRICE, 4)} <span className="text-base font-medium text-muted">USDC</span>
-                  </div>
-                </div>
-                <Badge tone="up" className="num text-xs">
-                  {fmtSignedPct(perf.vaultReturn, 2)} · 6M
-                </Badge>
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-5 py-3">
+                <span className="eyebrow">BTC Yield · 30D annualised</span>
+                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-up">
+                  <span className="size-1.5 rounded-full bg-up animate-pulse-soft" /> Live
+                </span>
               </div>
-              <div className="-ml-2 mt-4">
-                <PerformanceChart data={perf.data} showBtc={false} height={190} />
-              </div>
-              <div className="mt-4 border-t border-border pt-4">
-                <div className="mb-2 flex items-center justify-between text-xs text-muted">
-                  <span>Open positions</span>
-                  <span>Unrealised P&amp;L</span>
-                </div>
-                <ul className="space-y-1">
-                  {SAMPLE_POSITIONS.map((p) => (
-                    <li key={p.name} className="flex items-center justify-between rounded-lg px-2 py-2 transition hover:bg-white/[0.03]">
-                      <div>
-                        <div className="text-sm font-medium">{p.name}</div>
-                        <div className="text-xs text-faint">{p.meta}</div>
-                      </div>
-                      <span className={`num text-sm font-medium ${p.pnl >= 0 ? "text-up" : "text-down"}`}>
-                        {p.pnl >= 0 ? "+" : "−"}
-                        {fmtUsd0(Math.abs(p.pnl))}
-                      </span>
-                    </li>
+              <div className="px-5 pt-5">
+                <div className="display text-[5.5rem] leading-[0.85] text-accent sm:text-[7.5rem]">{fmtPct(VAULT.apy30d)}</div>
+                <div className="mt-4 grid grid-cols-3 gap-4 border-t border-border pt-4">
+                  {[
+                    ["Share price", fmtNum(SHARE_PRICE, 4)],
+                    ["Since launch", fmtSignedPct(VAULT.returnAll, 1)],
+                    ["Premium 30D", fmtCompact(VAULT.premium30d)],
+                  ].map(([k, v]) => (
+                    <div key={k}>
+                      <div className="eyebrow text-[10px]">{k}</div>
+                      <div className="num mt-1 font-mono text-sm">{v}</div>
+                    </div>
                   ))}
-                </ul>
+                </div>
+              </div>
+              <div className="-mb-1 mt-3 pr-3">
+                <PerformanceChart data={perf.data} showBtc={false} height={150} />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats strip */}
-      <section className="border-y border-border/70 bg-surface/40">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-6 px-4 py-8 sm:px-6 lg:grid-cols-4">
-          {[
-            ["Total value locked", fmtCompact(VAULT.tvl)],
-            ["30-day yield (annualised)", fmtPct(VAULT.apy30d)],
-            ["Depositors", VAULT.depositors.toLocaleString("en-US")],
-            ["Venues", "Deribit · OKX"],
-          ].map(([k, v]) => (
-            <div key={k} className="px-2 lg:border-l lg:border-border lg:px-6 lg:first:border-l-0">
-              <div className="num text-2xl font-semibold sm:text-3xl">{v}</div>
-              <div className="mt-1 text-xs text-muted sm:text-sm">{k}</div>
-            </div>
-          ))}
-        </div>
+      {/* KPI band */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <KpiGrid className="grid-cols-2 lg:grid-cols-5">
+          <Kpi label="Vault TVL" value={fmtCompact(VAULT.tvl)} sub={`≈ ${fmtBtc(toBtc(VAULT.tvl), 1)}`} />
+          <Kpi accent label="BTC Yield 30D" value={fmtPct(VAULT.apy30d)} sub="Annualised · variable" />
+          <Kpi label="Premium 30D" value={fmtUsd0(VAULT.premium30d)} sub={`≈ ${fmtBtc(toBtc(VAULT.premium30d), 2)}`} />
+          <Kpi label="Depositors" value={VAULT.depositors.toLocaleString("en-US")} sub="Active wallets" />
+          <Kpi className="col-span-2 lg:col-span-1" label="Venues" value="Deribit · OKX" sub="Institutional accounts" />
+        </KpiGrid>
       </section>
 
       {/* How it works */}
-      <section id="how" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-28">
-        <SectionHeading eyebrow="How it works" title="Three steps to options yield" />
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s, i) => (
-            <div key={s.title} className="card group relative p-6 transition hover:border-border-strong">
+      <section id="how" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-20 sm:px-6 sm:py-28">
+        <SectionHeading
+          index="01"
+          eyebrow="How it works"
+          title={
+            <>
+              Traders pay for protection.
+              <br />
+              <span className="text-accent">You collect it.</span>
+            </>
+          }
+        />
+        <ol className="mt-14 grid gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+          {FLOW.map((s, i) => (
+            <li key={s.title} className="group relative bg-surface p-6 transition-colors hover:bg-surface-2">
               <div className="flex items-center justify-between">
-                <span className="grid size-11 place-items-center rounded-xl border border-accent/25 bg-accent/10 text-accent">
-                  <s.icon className="size-5" />
-                </span>
-                <span className="num text-5xl font-semibold text-white/[0.04] transition group-hover:text-white/[0.07]">0{i + 1}</span>
+                <span className="display text-4xl text-accent">0{i + 1}</span>
+                {i < FLOW.length - 1 && <ArrowRight className="hidden size-4 text-faint transition group-hover:translate-x-1 group-hover:text-accent md:block" />}
               </div>
-              <h3 className="mt-6 text-lg font-semibold">{s.title}</h3>
+              <h3 className="mt-8 text-lg font-semibold">{s.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted">{s.body}</p>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
-      {/* Strategies */}
-      <section id="strategies" className="scroll-mt-20 border-y border-border/70 bg-surface/30">
+      {/* Options book */}
+      <section id="book" className="scroll-mt-28 border-y border-border bg-surface/40">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <SectionHeading
-              eyebrow="Strategies"
-              title="A basket built for every market"
-              body="Premium selling does the heavy lifting in flat and rising markets. Spreads, hedges and a USDC buffer manage the downside."
+              index="02"
+              eyebrow="The options book"
+              title="Every position, in the open."
+              body="A basket of BTC options that shifts with the market. Selling premium does the heavy lifting; spreads and hedges cap the downside."
             />
             <Button asChild variant="secondary" className="shrink-0">
               <Link to="/app/strategies">
-                Explore the payoff <ArrowRight />
+                Explore the payoff <ArrowUpRight />
               </Link>
             </Button>
           </div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+          <div className="mt-12">
+            <OptionsBook compact />
+          </div>
+
+          <div className="mt-4 grid gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
             {STRATEGIES.filter((s) => s.id !== "idle").map((s) => (
-              <div key={s.id} className="card flex flex-col p-5 transition hover:-translate-y-0.5 hover:border-border-strong">
-                <PayoffThumb kind={s.payoff} color={s.color} />
-                <h3 className="mt-4 font-semibold">{s.name}</h3>
+              <div key={s.id} className="flex flex-col bg-surface p-5">
+                <div className="flex items-start justify-between">
+                  <span className="eyebrow" style={{ color: s.color }}>{s.short}</span>
+                  <PayoffThumb kind={s.payoff} color={s.color} />
+                </div>
+                <h3 className="mt-2 font-semibold">{s.name}</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{s.description}</p>
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
-                  <span className="text-muted">{s.risk} risk</span>
-                  <span className="font-medium" style={{ color: s.color }}>{s.targetYield}</span>
+                <div className="mt-5 flex items-center justify-between border-t border-border pt-3 font-mono text-[11px] uppercase tracking-wider">
+                  <span className="text-faint">{s.risk} risk</span>
+                  <span className="text-fg">{s.targetYield}</span>
                 </div>
               </div>
             ))}
@@ -201,139 +183,105 @@ export default function Landing() {
       </section>
 
       {/* Fees */}
-      <section id="fees" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-20 sm:px-6 sm:py-28">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+      <section id="fees" className="mx-auto max-w-7xl scroll-mt-28 px-4 py-20 sm:px-6 sm:py-28">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
           <div>
-            <SectionHeading eyebrow="Fees" title="Simple, transparent pricing" body="No management fee. We only earn a share when you do." />
-            <div className="mt-10 grid grid-cols-2 gap-4">
-              {[
-                [fmtPct(FEES.deposit, 0), "Deposit fee"],
-                [fmtPct(FEES.withdraw, 0), "Withdrawal fee"],
-                [fmtPct(FEES.performance, 0), "Share of profits"],
-                [`${NOTICE_DAYS} days`, "Withdrawal notice"],
-              ].map(([v, k]) => (
-                <div key={k} className="card p-5">
-                  <div className="num text-3xl font-semibold text-gradient">{v}</div>
-                  <div className="mt-1 text-sm text-muted">{k}</div>
-                </div>
-              ))}
-            </div>
+            <SectionHeading index="03" eyebrow="Fees" title="Simple pricing. We earn when you earn." body="No management fee. Just a small fee on the way in and out, and a share of profits." />
+            <KpiGrid className="mt-10 grid-cols-2">
+              <Kpi label="Deposit fee" value={fmtPct(FEES.deposit, 0)} />
+              <Kpi label="Withdrawal fee" value={fmtPct(FEES.withdraw, 0)} />
+              <Kpi accent label="Share of profits" value={fmtPct(FEES.performance, 0)} />
+              <Kpi label="Withdrawal notice" value={`T+${NOTICE_DAYS}`} />
+            </KpiGrid>
           </div>
 
           <div className="card p-6 sm:p-8">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold">Example: $10,000 for one year</h3>
-              <Badge>20% gross return</Badge>
+              <span className="eyebrow">Example · $10,000 · 12 months</span>
+              <span className="eyebrow text-accent">20% gross</span>
             </div>
-            <dl className="mt-6 space-y-3 text-sm">
+            <dl className="mt-6 divide-y divide-border font-mono text-[13px]">
               <ExRow k="Deposit" v={fmtUsd(10_000)} />
-              <ExRow k={`Deposit fee (${fmtPct(FEES.deposit, 0)})`} v={`−${fmtUsd(ex.entryFee)}`} muted />
-              <ExRow k="Trading profit" v={`+${fmtUsd(ex.profit)}`} up />
-              <ExRow k={`Profit share (${fmtPct(FEES.performance, 0)})`} v={`−${fmtUsd(ex.profitShare)}`} muted />
-              <ExRow k={`Withdrawal fee (${fmtPct(FEES.withdraw, 0)})`} v={`−${fmtUsd(ex.exitFee)}`} muted />
+              <ExRow k={`Deposit fee ${fmtPct(FEES.deposit, 0)}`} v={`−${fmtUsd(ex.entryFee)}`} muted />
+              <ExRow k="Options premium earned" v={`+${fmtUsd(ex.profit)}`} up />
+              <ExRow k={`Profit share ${fmtPct(FEES.performance, 0)}`} v={`−${fmtUsd(ex.profitShare)}`} muted />
+              <ExRow k={`Withdrawal fee ${fmtPct(FEES.withdraw, 0)}`} v={`−${fmtUsd(ex.exitFee)}`} muted />
             </dl>
-            <div className="mt-5 flex items-end justify-between border-t border-border pt-5">
+            <div className="mt-4 flex items-end justify-between border-t border-border-strong pt-5">
               <div>
-                <div className="text-sm text-muted">You receive</div>
-                <div className="num mt-1 text-3xl font-semibold">{fmtUsd(ex.receive)}</div>
+                <div className="eyebrow">You receive</div>
+                <div className="display mt-2 text-4xl">{fmtUsd(ex.receive)}</div>
               </div>
-              <span className="num text-lg font-semibold text-up">{fmtSignedPct(ex.net, 1)} net</span>
+              <span className="display text-2xl text-accent">{fmtSignedPct(ex.net, 1)}</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Lucky Boost */}
-      <section id="boost" className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-20 sm:px-6 sm:pb-28">
-        <div className="card relative overflow-hidden border-gold/20 p-6 sm:p-10">
-          <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-gold/15 blur-[100px]" />
-          <div className="pointer-events-none absolute -bottom-32 left-10 size-72 rounded-full bg-accent/10 blur-[100px]" />
+      <section id="boost" className="mx-auto max-w-7xl scroll-mt-28 px-4 pb-20 sm:px-6 sm:pb-28">
+        <div className="relative overflow-hidden rounded-lg bg-accent p-6 text-accent-fg sm:p-10">
+          <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(rgb(0_0_0/0.5)_1px,transparent_1px)] [background-size:18px_18px] [mask-image:linear-gradient(to_left,black,transparent_70%)]" />
           <div className="relative grid gap-10 lg:grid-cols-2 lg:items-center">
             <div>
-              <Badge tone="gold" className="px-3 py-1 text-xs">
-                <Sparkles className="size-3" /> Lucky Boost
-              </Badge>
-              <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">Stay longer. Win bigger.</h2>
-              <p className="mt-4 max-w-md leading-relaxed text-muted">
-                Every month, long-term depositors are drawn to win a yield boost on top of normal returns. The longer you
-                hold and the more you deposit, the more tickets you earn.
+              <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em]">04 — Lucky Boost</div>
+              <h2 className="display mt-4 text-[2.4rem] leading-[0.95] sm:text-6xl">Hold longer.<br />Win bigger.</h2>
+              <p className="mt-5 max-w-md leading-relaxed text-accent-fg/75">
+                Every {DRAW_INTERVAL_BLOCKS.toLocaleString("en-US")} blocks (about a month), long-term depositors are drawn
+                to win a yield boost on top of normal returns. More USDC for longer means more tickets.
               </p>
-              <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-border bg-bg/50 px-4 py-3 text-sm">
-                <Ticket className="size-4 text-gold" />
-                <span className="text-muted">Tickets =</span>
-                <span className="font-medium">balance × days held ÷ 1,000</span>
+              <div className="mt-7 flex flex-wrap gap-2 font-mono text-[12px]">
+                <span className="inline-flex items-center gap-2 rounded-md bg-accent-fg/90 px-3 py-2 text-accent">
+                  <Ticket className="size-3.5" /> balance × days held ÷ 1,000
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-md border border-accent-fg/25 px-3 py-2">
+                  <Hash className="size-3.5" /> Next draw · block {draw.block.toLocaleString("en-US")}
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-md border border-accent-fg/25 px-3 py-2">
+                  <Boxes className="size-3.5" /> Winners picked from the block hash
+                </span>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {BOOST_TIERS.map((t, i) => (
-                <div
-                  key={t.label}
-                  className={`rounded-2xl border px-2 py-4 text-center sm:p-5 ${i === 0 ? "border-gold/40 bg-gold/10" : "border-border bg-bg/50"}`}
-                >
-                  <div className="num text-3xl font-semibold text-gold sm:text-4xl">{t.multiplier}</div>
-                  <div className="mt-2 text-sm font-medium">{t.label}</div>
-                  <div className="mt-1 text-xs text-muted">{t.winners} {t.winners === 1 ? "winner" : "winners"} / month</div>
+                <div key={t.label} className={`rounded-md px-2 py-5 text-center sm:p-6 ${i === 0 ? "bg-accent-fg text-accent" : "bg-accent-fg/10"}`}>
+                  <div className="display text-4xl sm:text-5xl">{t.multiplier}</div>
+                  <div className="mt-2 text-sm font-semibold">{t.label}</div>
+                  <div className="mt-1 font-mono text-[11px] opacity-70">{t.winners} {t.winners === 1 ? "winner" : "winners"}</div>
                 </div>
               ))}
-              <p className="col-span-3 text-center text-xs text-faint">
-                Funded by a {fmtUsd0(BOOST_POOL.monthlyBudget)} monthly budget from protocol fees.
+              <p className="col-span-3 text-center font-mono text-[11px] text-accent-fg/70">
+                Funded by a {fmtUsd0(BOOST_POOL.monthlyBudget)} monthly budget from protocol fees
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Trust + CTA */}
-      <section className="border-t border-border/70 bg-surface/30">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="card flex items-start gap-4 p-6">
-              <Building2 className="mt-0.5 size-5 shrink-0 text-accent" />
-              <div>
-                <h3 className="font-semibold">Institutional venues</h3>
-                <p className="mt-1 text-sm text-muted">Options are executed through institutional accounts on Deribit and OKX.</p>
-              </div>
-            </div>
-            <div className="card flex items-start gap-4 p-6">
-              <FileText className="mt-0.5 size-5 shrink-0 text-accent" />
-              <div>
-                <h3 className="font-semibold">Monthly reports</h3>
-                <p className="mt-1 text-sm text-muted">Positions, P&amp;L, fees and share price history, published every month.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-16 flex flex-col items-center text-center">
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">
-              Start earning <span className="text-gradient">options yield</span> on your USDC
-            </h2>
-            <Button asChild size="lg" className="mt-8">
-              <Link to="/app">
-                Launch App <ArrowRight />
-              </Link>
-            </Button>
-          </div>
+      {/* CTA */}
+      <section className="relative overflow-hidden border-t border-border">
+        <div className="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+        <div className="relative mx-auto flex max-w-7xl flex-col items-center px-4 py-24 text-center sm:px-6 sm:py-32">
+          <div className="eyebrow text-accent">BTC Yield · {fmtPct(VAULT.apy30d)} · 30D annualised</div>
+          <h2 className="display mt-6 max-w-4xl text-[2.6rem] leading-[0.95] sm:text-7xl">
+            Put your USDC to work on <span className="text-accent">Bitcoin.</span>
+          </h2>
+          <Button asChild size="lg" className="mt-10">
+            <Link to="/app">
+              Launch App <ArrowRight />
+            </Link>
+          </Button>
         </div>
       </section>
     </>
   );
 }
 
-function SectionHeading({ eyebrow, title, body }: { eyebrow: string; title: string; body?: string }) {
-  return (
-    <div className="max-w-2xl">
-      <div className="text-sm font-medium text-accent">{eyebrow}</div>
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h2>
-      {body && <p className="mt-4 leading-relaxed text-muted">{body}</p>}
-    </div>
-  );
-}
-
 function ExRow({ k, v, muted, up }: { k: string; v: string; muted?: boolean; up?: boolean }) {
   return (
-    <div className="flex justify-between">
+    <div className="flex justify-between py-3">
       <dt className="text-muted">{k}</dt>
-      <dd className={`num ${muted ? "text-muted" : up ? "text-up" : "font-medium"}`}>{v}</dd>
+      <dd className={`num ${muted ? "text-muted" : up ? "text-up" : "text-fg"}`}>{v}</dd>
     </div>
   );
 }
