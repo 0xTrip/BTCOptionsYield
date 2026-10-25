@@ -1,22 +1,35 @@
-import { ArrowDownLeft, ArrowUpRight, CircleCheck, Sparkles, TrendingDown, TrendingUp, Inbox } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Coins, Layers, Power, PowerOff, Inbox, Sparkles, TrendingUp, Undo2 } from "lucide-react";
+import { TICKER } from "@/config";
 import type { Activity } from "@/data/mock";
-import { fmtRelative, fmtSigned, fmtUsd } from "@/lib/format";
+import { fmtNum, fmtRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+
+const amt = (n: number, ticker: string, digits = 2) => `${fmtNum(n, digits)} ${ticker}`;
 
 function meta(a: Activity) {
   switch (a.type) {
     case "deposit":
-      return { icon: ArrowDownLeft, label: "Deposit", tone: "text-accent bg-accent/10", amount: `+${fmtUsd(a.amount)}` };
-    case "withdraw_request":
-      return { icon: ArrowUpRight, label: "Withdrawal requested", tone: "text-muted bg-white/5", amount: fmtUsd(a.amount) };
-    case "withdraw_claim":
-      return { icon: CircleCheck, label: "Withdrawal claimed", tone: "text-up bg-up/10", amount: `${fmtUsd(a.amount)}` };
-    case "yield":
-      return a.amount >= 0
-        ? { icon: TrendingUp, label: "Options yield", tone: "text-up bg-up/10", amount: fmtSigned(a.amount) }
-        : { icon: TrendingDown, label: "Options loss", tone: "text-down bg-down/10", amount: fmtSigned(a.amount) };
-    case "boost":
-      return { icon: Sparkles, label: "Lucky Boost", tone: "text-accent-fg bg-accent", amount: "" };
+      return { icon: ArrowDownLeft, label: `Deposited ${TICKER.collateral}`, tone: "text-accent bg-accent/10", amount: `+${amt(a.amount, TICKER.collateral)}` };
+    case "withdraw":
+      return { icon: ArrowUpRight, label: `Withdrew ${TICKER.collateral}`, tone: "text-muted bg-white/5", amount: `−${amt(a.amount, TICKER.collateral)}` };
+    case "mint":
+      return { icon: Coins, label: `Minted ${TICKER.stable}`, tone: "text-accent bg-accent/10", amount: `+${amt(a.amount, TICKER.stable)}` };
+    case "repay":
+      return { icon: Undo2, label: "Repaid debt", tone: "text-muted bg-white/5", amount: `−${amt(a.amount, TICKER.stable)}` };
+    case "earn":
+      return { icon: TrendingUp, label: "Premium repaid debt", tone: "text-up bg-up/10", amount: `−${amt(a.amount, TICKER.stable)}` };
+    case "called":
+      return { icon: Sparkles, label: "Calls settled in the money", tone: "text-fg bg-white/10", amount: `−${amt(a.amount, TICKER.collateral)}` };
+    case "earn_on":
+      return { icon: Power, label: "Earn mode on", tone: "text-accent bg-accent/10", amount: "" };
+    case "earn_off":
+      return { icon: PowerOff, label: "Earn mode off", tone: "text-muted bg-white/5", amount: "" };
+    case "stake":
+      return { icon: Layers, label: `Staked ${TICKER.stable}`, tone: "text-accent bg-accent/10", amount: amt(a.amount, TICKER.stable) };
+    case "unstake":
+      return { icon: Layers, label: `Unstaked ${TICKER.staked}`, tone: "text-muted bg-white/5", amount: `+${amt(a.amount, TICKER.stable)}` };
+    case "swap":
+      return { icon: ArrowLeftRight, label: "Swapped", tone: "text-muted bg-white/5", amount: fmtNum(a.amount) };
   }
 }
 
@@ -43,7 +56,7 @@ export function ActivityList({ items }: { items: Activity[] }) {
               <div className="truncate font-mono text-[11px] text-muted">{a.note ?? fmtRelative(a.ts)}</div>
             </div>
             <div className="text-right">
-              <div className={cn("num font-mono text-[13px] font-medium", a.type === "yield" && (a.amount >= 0 ? "text-up" : "text-down"))}>{m.amount}</div>
+              <div className={cn("num font-mono text-[13px] font-medium", a.type === "earn" && "text-up")}>{m.amount}</div>
               {a.note && <div className="font-mono text-[11px] text-faint">{fmtRelative(a.ts)}</div>}
             </div>
           </li>

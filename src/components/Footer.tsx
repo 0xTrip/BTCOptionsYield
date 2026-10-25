@@ -13,8 +13,9 @@ export function Footer() {
         </div>
         <div className="flex gap-6 text-sm text-muted">
           <Link to="/" className="hover:text-accent">Home</Link>
-          <Link to="/app" className="hover:text-accent">Dashboard</Link>
-          <Link to="/app/strategies" className="hover:text-accent">Strategies</Link>
+          <Link to="/app" className="hover:text-accent">Vault</Link>
+          <Link to="/app/stake" className="hover:text-accent">Stake</Link>
+          <Link to="/app/options" className="hover:text-accent">Options</Link>
         </div>
       </div>
     </footer>

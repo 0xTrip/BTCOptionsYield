@@ -17,15 +17,15 @@
   --color-muted: #a8a29e;
   --color-faint: #6f6964;
 
-  /* Bitcoin orange */
-  --color-accent: #f7931a;
-  --color-accent-2: #ffb85c;
-  --color-accent-deep: #b45309;
-  --color-accent-fg: #0a0500;
-  --color-gold: #ffc15e;
-  --color-btc: #f7931a;
-  --color-up: #3ddc84;
+  /* Volt lime; gains share the accent so "up" and "yield" read as one */
+  --color-accent: #c8f53c;
+  --color-accent-2: #dcff7a;
+  --color-accent-deep: #6f8f12;
+  --color-accent-fg: #0b0f00;
+  --color-up: #c8f53c;
   --color-down: #ff5c5c;
+  --color-warn: #f5b83d;
+  --color-tether: #26a17b;
 
   --animate-fade-up: fade-up 0.5s ease-out both;
   --animate-pulse-soft: pulse-soft 2.4s ease-in-out infinite;
@@ -99,7 +99,7 @@
 }
 
 @utility bg-dots {
-  background-image: radial-gradient(rgb(247 147 26 / 0.16) 1px, transparent 1px);
+  background-image: radial-gradient(rgb(200 245 60 / 0.14) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 

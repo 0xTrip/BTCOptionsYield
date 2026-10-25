@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useUi } from "@/store/useUi";
-import { useVault, type WalletName } from "@/store/useVault";
+import { useAccount, type WalletName } from "@/store/useAccount";
 
 const WALLETS: { name: WalletName; color: string; letter: string; hint: string }[] = [
   { name: "MetaMask", color: "#f6851b", letter: "M", hint: "Browser extension" },
@@ -13,7 +13,7 @@ const WALLETS: { name: WalletName; color: string; letter: string; hint: string }
 export function ConnectWalletDialog() {
   const open = useUi((s) => s.connectOpen);
   const setOpen = useUi((s) => s.setConnectOpen);
-  const connect = useVault((s) => s.connect);
+  const connect = useAccount((s) => s.connect);
   const [pending, setPending] = useState<WalletName | null>(null);
 
   const choose = (w: WalletName) => {

@@ -18,9 +18,15 @@ const compact = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
+const compactNum = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 2,
+});
+
 export const fmtUsd = (n: number) => usd.format(n);
 export const fmtUsd0 = (n: number) => usd0.format(n);
 export const fmtCompact = (n: number) => compact.format(n);
+export const fmtCompactNum = (n: number) => compactNum.format(n);
 
 export const fmtSigned = (n: number) => (n >= 0 ? "+" : "−") + usd.format(Math.abs(n));
 export const fmtSigned0 = (n: number) => (n >= 0 ? "+" : "−") + usd0.format(Math.abs(n));
@@ -50,9 +56,14 @@ export function fmtRelative(ts: number, now = Date.now()) {
   return fmtShortDate(ts);
 }
 
-export const fmtBtc = (n: number, digits = 4) => `₿${n.toFixed(digits)}`;
+/** Token price with a fixed number of decimals, e.g. $2.6400 */
+export const fmtPrice = (n: number, decimals = 2) =>
+  "$" + n.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
 export const fmtExpiry = (ts: number) =>
   new Date(ts)
     .toLocaleDateString("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" })
     .toUpperCase() + " 08:00 UTC";
+
+/** Collateral ratio as a percentage; a vault with no debt has no ratio */
+export const fmtRatio = (r: number) => (Number.isFinite(r) ? `${Math.round(r * 100)}%` : "—");

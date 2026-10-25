@@ -1,17 +1,19 @@
+import { TokenLabel, type Asset } from "@/components/TokenIcon";
+import { TICKER } from "@/config";
 import { cn } from "@/lib/utils";
 
 export function AmountInput({
   value,
   onChange,
   onMax,
-  unit = "USDC",
+  asset,
   invalid,
   autoFocus,
 }: {
   value: string;
   onChange: (v: string) => void;
   onMax?: () => void;
-  unit?: string;
+  asset: Asset;
   invalid?: boolean;
   autoFocus?: boolean;
 }) {
@@ -32,7 +34,7 @@ export function AmountInput({
           if (/^\d*\.?\d{0,6}$/.test(v)) onChange(v);
         }}
         className="display min-w-0 flex-1 bg-transparent text-3xl outline-none placeholder:text-faint"
-        aria-label={`Amount in ${unit}`}
+        aria-label={`Amount in ${TICKER[asset]}`}
       />
       {onMax && (
         <button
@@ -43,19 +45,7 @@ export function AmountInput({
           MAX
         </button>
       )}
-      <span className="flex items-center gap-1.5 font-mono text-xs font-medium text-muted">
-        <UsdcIcon /> {unit}
-      </span>
+      <TokenLabel asset={asset} className="text-muted" />
     </div>
-  );
-}
-
-export function UsdcIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 32 32" className={cn("size-5", className)} aria-hidden>
-      <circle cx="16" cy="16" r="16" fill="#2775CA" />
-      <circle cx="16" cy="16" r="10.5" fill="none" stroke="#fff" strokeWidth="1.6" opacity="0.9" />
-      <text x="16" y="21" textAnchor="middle" fontSize="14" fontWeight="700" fill="#fff" fontFamily="system-ui">$</text>
-    </svg>
   );
 }

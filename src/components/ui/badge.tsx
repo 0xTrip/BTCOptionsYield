@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 const tones = {
   default: "border-border-strong text-muted",
   accent: "border-accent/40 bg-accent/10 text-accent",
-  gold: "border-gold/40 bg-gold/10 text-gold",
   up: "border-up/30 bg-up/10 text-up",
   down: "border-down/30 bg-down/10 text-down",
 };

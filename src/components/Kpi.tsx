@@ -17,7 +17,7 @@ export function Kpi({
   accent,
   className,
 }: {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
   tip?: string;

@@ -11,7 +11,6 @@ const buttonVariants = cva(
         primary: "bg-accent text-accent-fg hover:bg-accent-2 active:translate-y-px",
         secondary: "border border-border-strong bg-transparent text-fg hover:border-accent hover:text-accent",
         ghost: "text-muted hover:bg-white/5 hover:text-fg",
-        gold: "bg-gold text-accent-fg hover:brightness-110",
       },
       size: {
         sm: "h-8 px-3 text-xs",

@@ -1,4 +1,4 @@
-import { DAY_MS, FEES, PUT_EXAMPLE } from "@/config";
+import { DAY_MS, EARN, EPOCH_DAYS, VAULT } from "@/config";
 
 /* ---------- deterministic randomness ---------- */
 
@@ -17,227 +17,226 @@ function gaussian(rand: () => number) {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand());
 }
 
-/** Random walk from `start` to exactly `end`, with optional shocks on given days */
-function walk(
-  days: number,
-  start: number,
-  end: number,
-  vol: number,
-  seed: number,
-  shocks: Record<number, number> = {},
-) {
+/** Random walk from `start` to exactly `end`, with optional shocks on given steps */
+function walk(steps: number, start: number, end: number, vol: number, seed: number, shocks: Record<number, number> = {}) {
   const rand = mulberry32(seed);
-  const steps = Array.from({ length: days }, (_, i) => vol * gaussian(rand) + (shocks[i] ?? 0));
-  const drift = (Math.log(end / start) - steps.reduce((a, b) => a + b, 0)) / days;
+  const moves = Array.from({ length: steps }, (_, i) => vol * gaussian(rand) + (shocks[i] ?? 0));
+  const drift = (Math.log(end / start) - moves.reduce((a, b) => a + b, 0)) / steps;
   const out = [start];
-  for (const s of steps) out.push(out[out.length - 1] * Math.exp(s + drift));
+  for (const m of moves) out.push(out[out.length - 1] * Math.exp(m + drift));
   return out;
 }
 
-/* ---------- vault history (180 days) ---------- */
+/* ---------- epoch schedule: weekly, settling with Friday 08:00 UTC expiries ---------- */
 
-export const HISTORY_DAYS = 180;
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const startTs = today.getTime() - HISTORY_DAYS * DAY_MS;
+export const EPOCH_MS = EPOCH_DAYS * DAY_MS;
 
-// Vault: steady premium carry with two drawdowns when BTC sold off through strikes
-const vaultSeries = walk(HISTORY_DAYS, 1, 1.0824, 0.0019, 105, {
-  58: -0.009, 59: -0.012, 60: -0.008, 61: -0.004,
-  127: -0.007, 128: -0.009, 129: -0.003,
-});
-const btcSeries = walk(HISTORY_DAYS, 68_400, PUT_EXAMPLE.spot, 0.024, 21, {
-  58: -0.05, 59: -0.06, 60: -0.03,
-  127: -0.04, 128: -0.045,
-});
-
-export type HistoryPoint = { ts: number; sharePrice: number; btc: number };
-
-export const HISTORY: HistoryPoint[] = vaultSeries.map((p, i) => ({
-  ts: startTs + i * DAY_MS,
-  sharePrice: p,
-  btc: btcSeries[i],
-}));
-
-export const SHARE_PRICE = HISTORY[HISTORY.length - 1].sharePrice;
-
-const priceAgo = (days: number) => HISTORY[HISTORY.length - 1 - days].sharePrice;
-
-export const VAULT = {
-  tvl: 12_480_000,
-  depositors: 1_284,
-  apy30d: (SHARE_PRICE / priceAgo(30) - 1) * (365 / 30),
-  returnAll: SHARE_PRICE - 1,
-  btcSpot: PUT_EXAMPLE.spot,
-  premium30d: 187_240,
-};
-
-export const MARKET = {
-  btcChange24h: 0.0124,
-  iv30d: 0.482,
-};
-
-/** Expressed in BTC at the reference spot price */
-export const toBtc = (usd: number) => usd / VAULT.btcSpot;
-
-/* ---------- block height (≈ one block per 10 minutes) ---------- */
-
-const BLOCK_ANCHOR = { height: 968_000, ts: Date.UTC(2026, 9, 22, 0, 0, 0) };
-const BLOCK_MS = 600_000;
-
-export function blockHeight(now = Date.now()) {
-  return BLOCK_ANCHOR.height + Math.floor((now - BLOCK_ANCHOR.ts) / BLOCK_MS);
+export function lastSettlement(now = Date.now()) {
+  const d = new Date(now);
+  const sinceFriday = (d.getUTCDay() + 2) % 7;
+  let ts = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 8) - sinceFriday * DAY_MS;
+  if (ts > now) ts -= EPOCH_MS;
+  return ts;
 }
 
-/* ---------- options book (Deribit-style instruments) ---------- */
+const NOW = Date.now();
+export const LAST_SETTLEMENT = lastSettlement(NOW);
+export const NEXT_SETTLEMENT = LAST_SETTLEMENT + EPOCH_MS;
+
+export const EPOCH_COUNT = 26;
+export const LAUNCHED_AT = LAST_SETTLEMENT - EPOCH_COUNT * EPOCH_MS;
+export const LIVE_EPOCH = EPOCH_COUNT + 1;
 
 const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-
-/** Last Friday of the month, 08:00 UTC: Deribit's monthly expiry */
-function monthlyExpiry(year: number, month: number) {
-  const d = new Date(Date.UTC(year, month + 1, 0, 8));
-  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 2) % 7));
-  return d.getTime();
-}
-
-function upcomingExpiries(count: number, minDays = 10) {
-  const out: number[] = [];
-  const now = new Date();
-  for (let i = 0; out.length < count; i++) {
-    const ts = monthlyExpiry(now.getUTCFullYear(), now.getUTCMonth() + i);
-    if (ts - now.getTime() > minDays * DAY_MS) out.push(ts);
-  }
-  return out;
-}
 
 export const fmtExpiryCode = (ts: number) => {
   const d = new Date(ts);
   return `${d.getUTCDate()}${MONTHS[d.getUTCMonth()]}${String(d.getUTCFullYear()).slice(2)}`;
 };
 
-const [E1, E2] = upcomingExpiries(2);
-export const NEXT_EXPIRY = E1;
+/* ---------- HYPE ---------- */
 
-export type Position = {
-  instrument: string;
-  strategy: StrategyId;
-  label: string;
-  side: "Sold" | "Bought";
-  sizeBtc: number;
+export const HYPE = { spot: 54.2, change24h: -0.016, iv30d: 0.94 };
+
+/** Weekly HYPE closes: CLOSES[0] opens epoch 1, CLOSES[n] settles epoch n */
+const CLOSES = walk(EPOCH_COUNT, 36.8, 55.1, 0.1, 4, { 6: 0.21, 19: 0.3 });
+
+/** Calls are struck about 20% above the epoch's opening price, rounded up to a listed strike */
+const strikeFor = (open: number) => Math.ceil(open * 1.2);
+
+/* ---------- epoch history ---------- */
+
+export type Epoch = {
+  n: number;
+  settledAt: number;
+  /** HYPE price when the calls were sold, and at settlement */
+  open: number;
+  close: number;
   strike: number;
-  expiry: number;
-  avgPremium: number;
+  /** HYPE locked in vaults, and the part of it in Earn mode */
+  locked: number;
+  earnHype: number;
+  supply: number;
+  staked: number;
+  premium: number;
+  /** HYPE finished above the strike, so Earn mode vaults paid out the difference */
+  calledAway: boolean;
+  /** What Earn mode vaults paid at settlement, in USD */
+  givenUp: number;
+  /** Stability fees for the week */
+  fees: number;
+  toVaults: number;
+  toStakers: number;
+  toProtocol: number;
+  /** sUSDH → USDH rate once this epoch has fully vested */
+  rate: number;
+};
+
+export const EPOCHS: Epoch[] = (() => {
+  const rand = mulberry32(9);
+  const out: Epoch[] = [];
+  let rate = 1;
+  for (let n = 1; n <= EPOCH_COUNT; n++) {
+    const t = (n - 1) / (EPOCH_COUNT - 1);
+    const last = n === EPOCH_COUNT;
+    const locked = 560_000 * Math.pow(1_620_000 / 560_000, t) * (last ? 1 : 1 + 0.02 * gaussian(rand));
+    const supply = 9_000_000 * Math.pow(31_400_000 / 9_000_000, t) * (last ? 1 : 1 + 0.02 * gaussian(rand));
+    const earnHype = locked * (0.3 + 0.16 * t);
+    const staked = supply * (0.48 + 0.1 * t);
+    const open = CLOSES[n - 1];
+    const close = CLOSES[n];
+    const strike = strikeFor(open);
+    const premium = earnHype * open * (0.0049 + 0.0005 * gaussian(rand));
+    const givenUp = earnHype * Math.max(0, close - strike);
+    const fees = supply * VAULT.stabilityFee * (EPOCH_DAYS / 365);
+    const toStakers = fees + premium * EARN.split.stakers;
+    rate *= 1 + toStakers / staked;
+    out.push({
+      n,
+      settledAt: LAUNCHED_AT + n * EPOCH_MS,
+      open,
+      close,
+      strike,
+      locked,
+      earnHype,
+      supply,
+      staked,
+      premium,
+      calledAway: close > strike,
+      givenUp,
+      fees,
+      toVaults: premium * EARN.split.vaults,
+      toStakers,
+      toProtocol: premium * EARN.split.protocol,
+      rate,
+    });
+  }
+  return out;
+})();
+
+/** Each epoch's staker income vests linearly over the following week, so the rate never jumps */
+export function rateAt(ts: number) {
+  let prev = 1;
+  for (const e of EPOCHS) {
+    if (ts < e.settledAt) return prev;
+    const vested = (ts - e.settledAt) / EPOCH_MS;
+    if (vested < 1) return prev + (e.rate - prev) * vested;
+    prev = e.rate;
+  }
+  return prev;
+}
+
+export type RatePoint = { ts: number; rate: number };
+
+export const RATE_HISTORY: RatePoint[] = (() => {
+  const out: RatePoint[] = [];
+  for (let ts = LAUNCHED_AT; ts < NOW; ts += DAY_MS) out.push({ ts, rate: rateAt(ts) });
+  out.push({ ts: NOW, rate: rateAt(NOW) });
+  return out;
+})();
+
+/** Current sUSDH → USDH exchange rate */
+export const RATE = rateAt(NOW);
+
+/* ---------- protocol snapshot ---------- */
+
+const LAST = EPOCHS[EPOCHS.length - 1];
+const RECENT = EPOCHS.slice(-4);
+const sum = (xs: Epoch[], f: (e: Epoch) => number) => xs.reduce((s, e) => s + f(e), 0);
+
+export const PROTOCOL = {
+  hypeLocked: LAST.locked,
+  collateralValue: LAST.locked * HYPE.spot,
+  supply: LAST.supply,
+  /** Total collateral value ÷ USDH debt */
+  systemRatio: (LAST.locked * HYPE.spot) / LAST.supply,
+  earnHype: LAST.earnHype,
+  earnShare: LAST.earnHype / LAST.locked,
+  staked: LAST.staked,
+  stakedShare: LAST.staked / LAST.supply,
+  /** sUSDH, last 30 days, compounded */
+  apy30d: Math.pow(RATE / rateAt(NOW - 30 * DAY_MS), 365 / 30) - 1,
+  /** Premium paid to Earn mode vaults over the last 4 epochs, annualised on the HYPE they put in */
+  earnYield: (sum(RECENT, (e) => e.toVaults / (e.earnHype * e.open)) / RECENT.length) * (365 / EPOCH_DAYS),
+  premiumToDate: sum(EPOCHS, (e) => e.premium),
+  toVaultsToDate: sum(EPOCHS, (e) => e.toVaults),
+  feesToDate: sum(EPOCHS, (e) => e.fees),
+  calledAwayWeeks: EPOCHS.filter((e) => e.calledAway).length,
+  vaults: 2_148,
+  /** USDT held to back 1:1 swaps */
+  swapReserve: 6_240_000,
+  lastEpoch: LAST,
+};
+
+/* ---------- this epoch's covered calls ---------- */
+
+export type Call = {
+  strike: number;
+  /** Contracts, in HYPE */
+  size: number;
+  /** Premium received per HYPE */
+  credit: number;
+  /** Current cost to close, per HYPE */
   mark: number;
+  venue: string;
 };
 
-export const OPTIONS_BOOK: Position[] = [
-  { instrument: `BTC-${fmtExpiryCode(E1)}-73000-P`, strategy: "puts", label: "Short put", side: "Sold", sizeBtc: 60, strike: 73_000, expiry: E1, avgPremium: 1_200, mark: 640 },
-  { instrument: `BTC-${fmtExpiryCode(E2)}-70000-P`, strategy: "puts", label: "Short put", side: "Sold", sizeBtc: 40, strike: 70_000, expiry: E2, avgPremium: 1_650, mark: 1_320 },
-  { instrument: `BTC-${fmtExpiryCode(E1)}-70000/65000-P`, strategy: "spreads", label: "Put spread", side: "Sold", sizeBtc: 120, strike: 70_000, expiry: E1, avgPremium: 640, mark: 380 },
-  { instrument: `BTC-${fmtExpiryCode(E2)}-100000-C`, strategy: "calls", label: "Long call", side: "Bought", sizeBtc: 25, strike: 100_000, expiry: E2, avgPremium: 1_240, mark: 930 },
-  { instrument: `BTC-${fmtExpiryCode(E1)}-62000-P`, strategy: "hedges", label: "Long put", side: "Bought", sizeBtc: 30, strike: 62_000, expiry: E1, avgPremium: 210, mark: 120 },
+const LIVE_STRIKE = strikeFor(LAST.close);
+const lot = (share: number) => Math.round((PROTOCOL.earnHype * share) / 1_000) * 1_000;
+
+export const BOOK: Call[] = [
+  { strike: LIVE_STRIKE, size: lot(0.62), credit: 0.27, mark: 0.19, venue: "Deribit" },
+  { strike: LIVE_STRIKE, size: lot(0.24), credit: 0.26, mark: 0.19, venue: "Bybit" },
+  { strike: LIVE_STRIKE + 3, size: lot(0.14), credit: 0.17, mark: 0.11, venue: "Deribit" },
 ];
 
-export const positionPnl = (p: Position) =>
-  (p.side === "Sold" ? p.avgPremium - p.mark : p.mark - p.avgPremium) * p.sizeBtc;
+export const instrument = (c: Call) => `HYPE_USDC-${fmtExpiryCode(NEXT_SETTLEMENT)}-${c.strike}-C`;
+export const premiumOf = (c: Call) => c.credit * c.size;
+export const pnlOf = (c: Call) => (c.credit - c.mark) * c.size;
+export const distanceOf = (c: Call) => c.strike / HYPE.spot - 1;
 
-/* ---------- strategies ---------- */
-
-export type Regime = "rising" | "sideways" | "falling";
-export type StrategyId = "puts" | "spreads" | "calls" | "hedges" | "idle";
-
-export type Strategy = {
-  id: StrategyId;
-  name: string;
-  short: string;
-  description: string;
-  regimes: Regime[];
-  risk: "Low" | "Medium" | "High";
-  targetYield: string;
-  color: string;
-  payoff: "short-put" | "put-spread" | "long-call" | "long-put" | "flat";
+export const BOOK_STATS = {
+  strike: LIVE_STRIKE,
+  opened: LAST.close,
+  size: BOOK.reduce((s, c) => s + c.size, 0),
+  premium: BOOK.reduce((s, c) => s + premiumOf(c), 0),
+  pnl: BOOK.reduce((s, c) => s + pnlOf(c), 0),
+  /** Premium per HYPE in Earn mode, before the split */
+  perHype: BOOK.reduce((s, c) => s + premiumOf(c), 0) / BOOK.reduce((s, c) => s + c.size, 0),
 };
 
-export const STRATEGIES: Strategy[] = [
-  {
-    id: "puts",
-    name: "Cash-secured puts",
-    short: "Sell Puts",
-    description:
-      "Sell BTC puts below spot and collect the premium upfront. Earns when BTC holds above the strike: the core yield engine in flat and rising markets.",
-    regimes: ["sideways", "rising"],
-    risk: "Medium",
-    targetYield: "15–25% APR",
-    color: "#f7931a",
-    payoff: "short-put",
-  },
-  {
-    id: "spreads",
-    name: "Put credit spreads",
-    short: "Spreads",
-    description:
-      "Sell a put and buy a lower one as a floor. Less premium, but the maximum loss is capped and known in advance.",
-    regimes: ["sideways", "rising", "falling"],
-    risk: "Low",
-    targetYield: "8–14% APR",
-    color: "#ffc27a",
-    payoff: "put-spread",
-  },
-  {
-    id: "calls",
-    name: "Long calls",
-    short: "Calls",
-    description:
-      "A small, high-conviction sleeve that buys upside calls in trending markets. Can multiply its premium, or expire worthless.",
-    regimes: ["rising"],
-    risk: "High",
-    targetYield: "Up to 3× premium",
-    color: "#f6f4f1",
-    payoff: "long-call",
-  },
-  {
-    id: "hedges",
-    name: "Protective puts",
-    short: "Hedges",
-    description:
-      "Buy downside puts when momentum turns, offsetting losses on short puts during sharp sell-offs.",
-    regimes: ["falling"],
-    risk: "Low",
-    targetYield: "Protection",
-    color: "#b4500e",
-    payoff: "long-put",
-  },
-  {
-    id: "idle",
-    name: "USDC buffer",
-    short: "Idle USDC",
-    description:
-      "Unallocated stablecoins held for withdrawals and margin, then redeployed when premiums are attractive.",
-    regimes: ["sideways", "rising", "falling"],
-    risk: "Low",
-    targetYield: "Liquidity",
-    color: "#4a4643",
-    payoff: "flat",
-  },
-];
+/* ---------- vault maths ---------- */
 
-export const ALLOCATIONS: Record<Regime, Record<StrategyId, number>> = {
-  rising: { puts: 0.45, spreads: 0.15, calls: 0.2, hedges: 0.05, idle: 0.15 },
-  sideways: { puts: 0.6, spreads: 0.2, calls: 0.05, hedges: 0.05, idle: 0.1 },
-  falling: { puts: 0.2, spreads: 0.15, calls: 0, hedges: 0.25, idle: 0.4 },
-};
-
-export const CURRENT_REGIME: Regime = "sideways";
-
-export const REGIME_LABEL: Record<Regime, string> = {
-  rising: "Rising",
-  sideways: "Sideways",
-  falling: "Falling",
-};
+export const collateralRatio = (collateral: number, debt: number, price = HYPE.spot) => (debt > 0 ? (collateral * price) / debt : Infinity);
+export const liquidationPrice = (collateral: number, debt: number) => (collateral > 0 ? (debt * VAULT.liquidationRatio) / collateral : 0);
+/** Most USDH that can be minted against a vault right now */
+export const maxMint = (collateral: number, debt: number) => Math.max(0, (collateral * HYPE.spot) / VAULT.minRatio - debt);
+/** Most HYPE that can be withdrawn while staying at or above the minimum ratio */
+export const maxWithdraw = (collateral: number, debt: number) => Math.max(0, collateral - (debt * VAULT.minRatio) / HYPE.spot);
 
 /* ---------- seeded demo user ---------- */
 
-export type ActivityType = "deposit" | "withdraw_request" | "withdraw_claim" | "yield" | "boost";
+export type ActivityType = "deposit" | "withdraw" | "mint" | "repay" | "earn" | "called" | "earn_on" | "earn_off" | "stake" | "unstake" | "swap";
 
 export type Activity = {
   id: string;
@@ -247,101 +246,59 @@ export type Activity = {
   note?: string;
 };
 
-export type Withdrawal = {
-  id: string;
-  shares: number;
-  gross: number;
-  fee: number;
-  net: number;
-  requestedAt: number;
-  unlockAt: number;
-  claimed: boolean;
+export type Vault = {
+  /** HYPE */
+  collateral: number;
+  /** USDH */
+  debt: number;
+  earn: boolean;
+  /** USDH of debt repaid by Earn mode premium */
+  premiumEarned: number;
+  /** HYPE sold to settle calls that finished in the money */
+  calledHype: number;
+  openedAt: number;
 };
 
 export type UserSeed = {
+  usdh: number;
   shares: number;
-  costBasis: number;
-  firstDepositAt: number;
+  stakeCost: number;
+  vault: Vault;
   activity: Activity[];
-  withdrawals: Withdrawal[];
 };
-
-const idx = (daysAgo: number) => HISTORY.length - 1 - daysAgo;
 
 export function seedUser(): UserSeed {
   const now = Date.now();
-  const deposits = [
-    { daysAgo: 118, amount: 4_000 },
-    { daysAgo: 41, amount: 1_500 },
+  const openedAt = now - 100 * DAY_MS;
+  const vault: Vault = { collateral: 1_200, debt: 20_000, earn: true, premiumEarned: 0, calledHype: 0, openedAt };
+  const activity: Activity[] = [
+    { id: "seed-dep", type: "deposit", ts: openedAt, amount: 1_200 },
+    { id: "seed-mint", type: "mint", ts: openedAt + 60_000, amount: 20_000 },
+    { id: "seed-earn-on", type: "earn_on", ts: openedAt + 120_000, amount: 0 },
+    { id: "seed-stake", type: "stake", ts: openedAt + 180_000, amount: 12_000 },
   ];
-  let shares = 0;
-  let costBasis = 0;
-  const activity: Activity[] = [];
 
-  for (const d of deposits) {
-    const p = HISTORY[idx(d.daysAgo)].sharePrice;
-    shares += (d.amount * (1 - FEES.deposit)) / p;
-    costBasis += d.amount;
-    activity.push({ id: `seed-dep-${d.daysAgo}`, type: "deposit", ts: now - d.daysAgo * DAY_MS, amount: d.amount });
+  // Each settled epoch since the vault opened: premium repays debt, and calls in the money sell a little HYPE
+  for (const e of EPOCHS.filter((x) => x.settledAt - EPOCH_MS > openedAt)) {
+    const share = vault.collateral / e.earnHype;
+    const credit = e.toVaults * share;
+    vault.debt -= credit;
+    vault.premiumEarned += credit;
+    activity.push({ id: `seed-earn-${e.n}`, type: "earn", ts: e.settledAt, amount: credit, note: `Epoch ${e.n} premium` });
+    if (e.calledAway) {
+      const sold = (vault.collateral * (e.close - e.strike)) / e.close;
+      vault.collateral -= sold;
+      vault.calledHype += sold;
+      activity.push({ id: `seed-called-${e.n}`, type: "called", ts: e.settledAt + 1, amount: sold, note: `Epoch ${e.n} · HYPE closed above $${e.strike}` });
+    }
   }
-
-  // Monthly yield credits, computed from the share price path
-  for (const daysAgo of [90, 60, 30]) {
-    const held = deposits.filter((d) => d.daysAgo > daysAgo);
-    const sh = held.reduce((s, d) => s + (d.amount * (1 - FEES.deposit)) / HISTORY[idx(d.daysAgo)].sharePrice, 0);
-    const gain = sh * (HISTORY[idx(daysAgo)].sharePrice - HISTORY[idx(daysAgo + 30)].sharePrice);
-    activity.push({ id: `seed-yield-${daysAgo}`, type: "yield", ts: now - daysAgo * DAY_MS, amount: gain, note: "Monthly options P&L" });
-  }
-
-  activity.push({
-    id: "seed-boost",
-    type: "boost",
-    ts: now - 24 * DAY_MS,
-    amount: 0,
-    note: "Entered monthly Lucky Boost draw",
-  });
-
-  // One withdrawal sitting in its notice period
-  const wShares = 450 / SHARE_PRICE;
-  const gross = wShares * SHARE_PRICE;
-  const requestedAt = now - 12 * DAY_MS;
-  costBasis *= 1 - wShares / shares;
-  shares -= wShares;
-  const withdrawal: Withdrawal = {
-    id: "seed-wd",
-    shares: wShares,
-    gross,
-    fee: gross * FEES.withdraw,
-    net: gross * (1 - FEES.withdraw),
-    requestedAt,
-    unlockAt: requestedAt + 30 * DAY_MS,
-    claimed: false,
-  };
-  activity.push({ id: "seed-wd-req", type: "withdraw_request", ts: requestedAt, amount: gross });
 
   activity.sort((a, b) => b.ts - a.ts);
-  return { shares, costBasis, firstDepositAt: now - 118 * DAY_MS, activity, withdrawals: [withdrawal] };
-}
-
-/* ---------- Lucky Boost ---------- */
-
-export const BOOST_TIERS = [
-  { multiplier: "3×", winners: 1, label: "Grand boost" },
-  { multiplier: "2×", winners: 10, label: "Gold boost" },
-  { multiplier: "1.5×", winners: 50, label: "Silver boost" },
-];
-
-export const BOOST_POOL = {
-  totalTickets: 1_842_000,
-  monthlyBudget: 18_500,
-};
-
-/** Draws happen every 4,320 blocks (≈ 30 days); winners are picked from that block's hash */
-export const DRAW_INTERVAL_BLOCKS = 4_320;
-
-export function nextDraw(now = Date.now()) {
-  const height = blockHeight(now);
-  const block = Math.ceil((height + 1) / DRAW_INTERVAL_BLOCKS) * DRAW_INTERVAL_BLOCKS;
-  const ts = BLOCK_ANCHOR.ts + (block - BLOCK_ANCHOR.height) * BLOCK_MS;
-  return { block, ts };
+  return {
+    usdh: 2_500,
+    shares: 12_000 / rateAt(openedAt),
+    stakeCost: 12_000,
+    vault,
+    activity,
+  };
 }

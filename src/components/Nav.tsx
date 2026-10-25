@@ -7,18 +7,19 @@ import { Logo } from "@/components/Logo";
 import { Ticker } from "@/components/Ticker";
 import { cn } from "@/lib/utils";
 import { useUi } from "@/store/useUi";
-import { useVault } from "@/store/useVault";
+import { useAccount } from "@/store/useAccount";
 
 const MARKETING_LINKS = [
   { href: "#how", label: "How it works" },
-  { href: "#book", label: "Options book" },
-  { href: "#fees", label: "Fees" },
-  { href: "#boost", label: "Lucky Boost" },
+  { href: "#vaults", label: "Vaults" },
+  { href: "#earn", label: "Earn mode" },
+  { href: "#stake", label: "Stake" },
 ];
 
 const APP_LINKS = [
-  { to: "/app", label: "Dashboard", end: true },
-  { to: "/app/strategies", label: "Strategies", end: false },
+  { to: "/app", label: "Vault", end: true },
+  { to: "/app/stake", label: "Stake", end: false },
+  { to: "/app/options", label: "Options", end: false },
 ];
 
 export function DemoBadge() {
@@ -31,9 +32,9 @@ export function DemoBadge() {
 }
 
 function WalletButton() {
-  const connected = useVault((s) => s.connected);
-  const address = useVault((s) => s.address);
-  const disconnect = useVault((s) => s.disconnect);
+  const connected = useAccount((s) => s.connected);
+  const address = useAccount((s) => s.address);
+  const disconnect = useAccount((s) => s.disconnect);
   const setConnectOpen = useUi((s) => s.setConnectOpen);
 
   if (!connected || !address)
@@ -61,7 +62,7 @@ const linkBase = "relative px-3 py-2 text-sm font-medium transition-colors";
 
 export function Nav({ variant }: { variant: "marketing" | "app" }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const reset = useVault((s) => s.reset);
+  const reset = useAccount((s) => s.reset);
   const navigate = useNavigate();
 
   const doReset = () => {
